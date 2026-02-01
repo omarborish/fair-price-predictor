@@ -22,5 +22,5 @@
   "min_price": 1000,
   "max_price": 100000,
   "model_type": "histgb",
-  "trained_at": "2026-01-31T20:38:04.368070"
+  "trained_at": "2026-01-31T20:53:07.992687"
 }
