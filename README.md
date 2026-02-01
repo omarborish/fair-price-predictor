@@ -10,11 +10,12 @@ A production-ready, AI-powered web application that predicts fair market prices 
 - **High Accuracy**: Comprehensive metrics (within ±10%, ±15%, interval coverage)
 - **Confidence Intervals**: See low/high price ranges using quantile regression
 - **Explainability**: Understand what factors affect the price
-- **Similar Listings Gallery**: View comparable vehicles with photos and links
-- **Market Insights**: Auto-generated trends and analysis
+- **Dependent Dropdowns**: Smart form (Make → Model → valid options) prevents invalid combinations
+- **Similar Listings Gallery**: View comparable vehicles with photos, sorting, and original listing links
+- **Market Insights Hub**: 5 in-depth analysis pages (mileage impact, depreciation, price distribution, drivetrain, fuel types)
 - **Modern UI**: Responsive, dark mode, beautiful dashboard design
 - **Ad-Ready**: Pre-built ad slot components for monetization
-- **SEO Optimized**: Meta tags, semantic HTML, fast loading
+- **SEO Optimized**: Sitemap, meta tags, semantic HTML, fast loading
 
 ## Tech Stack
 
@@ -32,13 +33,21 @@ A production-ready, AI-powered web application that predicts fair market prices 
 Fair Price Prediction/
 ├── web/                    # Next.js frontend
 │   ├── src/
-│   │   ├── app/           # App Router pages (/, /insights, /methodology, /contact, /privacy)
-│   │   ├── components/    # React components (PredictorForm, PredictionResult, charts, etc.)
+│   │   ├── app/           # App Router pages
+│   │   │   ├── insights/  # Insights hub + 5 sub-pages
+│   │   │   ├── methodology/
+│   │   │   ├── contact/
+│   │   │   └── privacy/
+│   │   ├── components/    # React components
 │   │   └── lib/           # Utilities & API client
 │   └── public/data/       # Static data (metrics, insights, dropdowns)
 ├── server/                 # FastAPI backend
 │   ├── main.py            # API endpoints
 │   ├── models/            # Trained model artifacts
+│   ├── data/              # Generated lookup data
+│   │   └── vehicle_options.json
+│   ├── scripts/           # Data generation scripts
+│   │   └── generate_vehicle_options.py
 │   └── requirements.txt   # Python dependencies
 ├── training/               # ML training pipeline
 │   └── train_model.py     # Model training script (v2.0)
@@ -98,6 +107,9 @@ API Endpoints:
 - `GET /insights` - Get market insights
 - `GET /metrics` - Get model performance metrics
 - `GET /health` - Health check
+- `GET /options/makes` - Get all makes (for dependent dropdowns)
+- `GET /options/models?make=Toyota` - Get models for a make
+- `GET /options/details?make=Toyota&model=Camry` - Get valid options for make+model
 
 ### 3. Start the Frontend
 
@@ -158,6 +170,42 @@ Ad positions available:
 - `sidebar` - Desktop sidebar
 - `in-content` - Between content sections
 - `footer` - Footer banner
+
+## Data Regeneration
+
+### Regenerate Vehicle Options (Dependent Dropdowns)
+
+The vehicle options file powers the dependent dropdowns (Make → Model → Options):
+
+```bash
+# From project root (with venv activated)
+python server/scripts/generate_vehicle_options.py
+```
+
+This generates `server/data/vehicle_options.json` containing:
+- All makes sorted by popularity
+- Models for each make
+- Valid fuel/type/drive/transmission options per make+model
+- Most common defaults for auto-fill
+
+### Regenerate Insights
+
+Insights are generated as part of the training process:
+
+```bash
+python training/train_model.py
+```
+
+This creates `web/public/data/insights.json` with:
+- Price by year, manufacturer, mileage, fuel, drive, type
+- Depreciation curve
+- Overall market statistics
+
+### When to Regenerate
+
+- **After updating the dataset**: Re-run both scripts
+- **After changing filtering thresholds**: Modify constants in scripts and re-run
+- **Before production deployment**: Ensure all data files are up to date
 
 ## Model Details
 

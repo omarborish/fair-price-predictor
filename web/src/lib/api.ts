@@ -110,3 +110,78 @@ export async function checkHealth(): Promise<boolean> {
     return false;
   }
 }
+
+// ============================================================================
+// DEPENDENT DROPDOWN APIs
+// ============================================================================
+
+export interface MakeOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
+export interface ModelOption {
+  value: string;
+  label: string;
+  count: number;
+}
+
+export interface ModelDetails {
+  make: string;
+  model: string;
+  fuels: string[];
+  types: string[];
+  drives: string[];
+  transmissions: string[];
+  fallback?: boolean;
+}
+
+export interface CommonDefaults {
+  make: string;
+  model: string;
+  fuel: string;
+  type: string;
+  drive: string;
+  transmission: string;
+}
+
+export async function getMakes(): Promise<{ makes: MakeOption[]; total: number }> {
+  const response = await fetch(`${API_BASE}/options/makes`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to load makes');
+  }
+  
+  return response.json();
+}
+
+export async function getModels(make: string): Promise<{ models: ModelOption[]; make: string; total: number }> {
+  const response = await fetch(`${API_BASE}/options/models?make=${encodeURIComponent(make)}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to load models');
+  }
+  
+  return response.json();
+}
+
+export async function getModelDetails(make: string, model: string): Promise<ModelDetails> {
+  const response = await fetch(`${API_BASE}/options/details?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to load model details');
+  }
+  
+  return response.json();
+}
+
+export async function getCommonDefaults(make: string, model: string): Promise<CommonDefaults> {
+  const response = await fetch(`${API_BASE}/options/common?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}`);
+  
+  if (!response.ok) {
+    throw new Error('Failed to load common defaults');
+  }
+  
+  return response.json();
+}

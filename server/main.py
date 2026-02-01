@@ -38,6 +38,7 @@ IS_PRODUCTION = ENVIRONMENT == "production"
 # Configuration
 MODELS_DIR = Path(__file__).parent / "models"
 DATA_DIR = Path(__file__).parent.parent / "web" / "public" / "data"
+SERVER_DATA_DIR = Path(__file__).parent / "data"
 
 # Rate limiting configuration
 RATE_LIMIT_PREDICTIONS = 60  # predictions per hour per IP
@@ -227,6 +228,7 @@ preprocessor = None
 config = {}
 comparables_df = None
 feature_importance = {}
+vehicle_options = {}  # For dependent dropdowns
 
 
 def load_models():
@@ -278,6 +280,16 @@ def load_models():
     if comparables_path.exists():
         comparables_df = pd.read_parquet(comparables_path)
         print(f"[OK] Loaded {len(comparables_df):,} comparable listings")
+    
+    # Load vehicle options for dependent dropdowns
+    global vehicle_options
+    vehicle_options_path = SERVER_DATA_DIR / "vehicle_options.json"
+    if vehicle_options_path.exists():
+        with open(vehicle_options_path) as f:
+            vehicle_options = json.load(f)
+        print(f"[OK] Loaded vehicle options ({vehicle_options.get('metadata', {}).get('total_makes', 0)} makes, {vehicle_options.get('metadata', {}).get('total_models', 0)} models)")
+    else:
+        print(f"[WARN] Vehicle options not found at {vehicle_options_path}")
     
     return models, preprocessor
 
@@ -608,6 +620,102 @@ async def get_dropdowns():
         "types": ["sedan", "suv", "truck", "coupe", "wagon"],
         "conditions": ["new", "like new", "excellent", "good", "fair"],
         "years": list(range(1990, datetime.now().year + 2))
+    }
+
+
+# ============================================================================
+# DEPENDENT DROPDOWN ENDPOINTS (Make -> Model -> Options)
+# ============================================================================
+
+@app.get("/options/makes")
+async def get_makes():
+    """Get list of makes sorted by popularity."""
+    if not vehicle_options or "makes" not in vehicle_options:
+        raise HTTPException(status_code=503, detail="Vehicle options not loaded")
+    
+    return {
+        "makes": vehicle_options["makes"],
+        "total": len(vehicle_options["makes"])
+    }
+
+
+@app.get("/options/models")
+async def get_models(make: str):
+    """Get models for a specific make, sorted by popularity."""
+    if not vehicle_options:
+        raise HTTPException(status_code=503, detail="Vehicle options not loaded")
+    
+    make_lower = make.lower().strip()
+    
+    if make_lower not in vehicle_options.get("models_by_make", {}):
+        # Return empty list for unknown makes
+        return {
+            "models": [],
+            "make": make,
+            "total": 0
+        }
+    
+    return {
+        "models": vehicle_options["models_by_make"][make_lower],
+        "make": make,
+        "total": len(vehicle_options["models_by_make"][make_lower])
+    }
+
+
+@app.get("/options/details")
+async def get_model_details(make: str, model: str):
+    """Get valid fuel/type/drive/transmission options for a make+model."""
+    if not vehicle_options:
+        raise HTTPException(status_code=503, detail="Vehicle options not loaded")
+    
+    make_lower = make.lower().strip()
+    model_lower = model.lower().strip()
+    key = f"{make_lower}|{model_lower}"
+    
+    options = vehicle_options.get("options_by_make_model", {}).get(key)
+    
+    if options:
+        return {
+            "make": make,
+            "model": model,
+            "fuels": options.get("fuels", []),
+            "types": options.get("types", []),
+            "drives": options.get("drives", []),
+            "transmissions": options.get("transmissions", [])
+        }
+    
+    # Fall back to global options
+    fallback = vehicle_options.get("fallback_options", {})
+    return {
+        "make": make,
+        "model": model,
+        "fuels": fallback.get("fuels", ["gas", "diesel", "electric", "hybrid"]),
+        "types": fallback.get("types", ["sedan", "suv", "truck", "coupe"]),
+        "drives": fallback.get("drives", ["fwd", "rwd", "4wd"]),
+        "transmissions": fallback.get("transmissions", ["automatic", "manual"]),
+        "fallback": True
+    }
+
+
+@app.get("/options/common")
+async def get_common_defaults(make: str, model: str):
+    """Get the most common configuration for a make+model (for auto-filling form)."""
+    if not vehicle_options:
+        raise HTTPException(status_code=503, detail="Vehicle options not loaded")
+    
+    make_lower = make.lower().strip()
+    model_lower = model.lower().strip()
+    key = f"{make_lower}|{model_lower}"
+    
+    defaults = vehicle_options.get("common_defaults", {}).get(key, {})
+    
+    return {
+        "make": make,
+        "model": model,
+        "fuel": defaults.get("fuel", "gas"),
+        "type": defaults.get("type", "sedan"),
+        "drive": defaults.get("drive", "fwd"),
+        "transmission": defaults.get("transmission", "automatic")
     }
 
 

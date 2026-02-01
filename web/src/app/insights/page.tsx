@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { 
   BarChart3, TrendingDown, Gauge, Settings, Fuel, Truck, 
-  CarFront, Loader2, AlertCircle, LightbulbIcon 
+  CarFront, Loader2, AlertCircle, LightbulbIcon, ArrowRight 
 } from 'lucide-react';
 import { AdSlot } from '@/components/AdSlot';
 import { DepreciationChart } from '@/components/charts/DepreciationChart';
@@ -11,6 +12,44 @@ import { MileageImpactChart } from '@/components/charts/MileageImpactChart';
 import { ManufacturerChart } from '@/components/charts/ManufacturerChart';
 import { getInsights } from '@/lib/api';
 import { formatPrice, formatNumber } from '@/lib/utils';
+
+const insightPages = [
+  {
+    href: '/insights/mileage-impact',
+    title: 'Mileage Impact on Price',
+    description: 'How odometer readings affect vehicle value',
+    icon: <Gauge className="w-6 h-6" />,
+    color: 'from-blue-500 to-blue-600'
+  },
+  {
+    href: '/insights/depreciation-by-year',
+    title: 'Depreciation by Year',
+    description: 'Understanding the depreciation curve',
+    icon: <TrendingDown className="w-6 h-6" />,
+    color: 'from-purple-500 to-purple-600'
+  },
+  {
+    href: '/insights/price-distribution',
+    title: 'Price Distribution',
+    description: 'What cars actually cost by make and type',
+    icon: <BarChart3 className="w-6 h-6" />,
+    color: 'from-green-500 to-green-600'
+  },
+  {
+    href: '/insights/drivetrain-premium',
+    title: 'Drivetrain Premium',
+    description: 'AWD, 4WD, FWD, and RWD price differences',
+    icon: <Settings className="w-6 h-6" />,
+    color: 'from-amber-500 to-amber-600'
+  },
+  {
+    href: '/insights/fuel-type-comparison',
+    title: 'Fuel Type Comparison',
+    description: 'Gas vs. diesel vs. hybrid vs. electric',
+    icon: <Fuel className="w-6 h-6" />,
+    color: 'from-cyan-500 to-cyan-600'
+  },
+];
 
 export default function InsightsPage() {
   const [insights, setInsights] = useState<any>(null);
@@ -99,6 +138,37 @@ export default function InsightsPage() {
             value={formatNumber(insights.overall_stats?.unique_manufacturers || 0)}
             icon={<Truck className="w-5 h-5" />}
           />
+        </div>
+
+        {/* Explore Insights */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+            <LightbulbIcon className="w-6 h-6 text-amber-500" />
+            Explore In-Depth Analysis
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {insightPages.map((page) => (
+              <Link
+                key={page.href}
+                href={page.href}
+                className="group relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 hover:shadow-lg transition-all"
+              >
+                <div className={`absolute inset-0 bg-gradient-to-br ${page.color} opacity-0 group-hover:opacity-5 transition-opacity`} />
+                <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br ${page.color} text-white mb-4`}>
+                  {page.icon}
+                </div>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-1 group-hover:text-green-600 dark:group-hover:text-green-400 transition-colors">
+                  {page.title}
+                </h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">
+                  {page.description}
+                </p>
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-green-600 dark:text-green-400">
+                  Read More <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* Insight Summaries */}

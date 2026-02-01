@@ -1,16 +1,19 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   TrendingUp, TrendingDown, DollarSign, Copy, Check,
   Gauge, Calendar, Car, Info, Sparkles, MapPin, 
-  ExternalLink, ChevronDown, ChevronUp, ImageOff
+  ExternalLink, ChevronDown, ChevronUp, ImageOff,
+  ArrowUpDown, HelpCircle, X
 } from 'lucide-react';
 import { cn, formatPrice, formatNumber, titleCase } from '@/lib/utils';
 import { PredictionResponse, ComparableCar } from '@/lib/api';
 import { PriceDistributionChart } from './charts/PriceDistributionChart';
 import { FeatureImpactChart } from './charts/FeatureImpactChart';
 import Image from 'next/image';
+
+type SortOption = 'match' | 'price_low' | 'price_high' | 'mileage_low';
 
 interface PredictionResultProps {
   result: PredictionResponse;
@@ -25,6 +28,8 @@ interface PredictionResultProps {
 export function PredictionResult({ result, carDetails }: PredictionResultProps) {
   const [copied, setCopied] = useState(false);
   const [showAllComparables, setShowAllComparables] = useState(false);
+  const [sortBy, setSortBy] = useState<SortOption>('match');
+  const [showSimilarityInfo, setShowSimilarityInfo] = useState(false);
 
   const priceColor = {
     'Great Value': 'from-blue-600 to-blue-500',
@@ -46,9 +51,25 @@ export function PredictionResult({ result, carDetails }: PredictionResultProps) 
     }
   };
 
+  // Sort comparables based on selected option
+  const sortedComparables = useMemo(() => {
+    const sorted = [...result.comparables];
+    switch (sortBy) {
+      case 'price_low':
+        return sorted.sort((a, b) => a.price - b.price);
+      case 'price_high':
+        return sorted.sort((a, b) => b.price - a.price);
+      case 'mileage_low':
+        return sorted.sort((a, b) => a.odometer - b.odometer);
+      case 'match':
+      default:
+        return sorted.sort((a, b) => b.similarity_score - a.similarity_score);
+    }
+  }, [result.comparables, sortBy]);
+
   const displayedComparables = showAllComparables 
-    ? result.comparables 
-    : result.comparables.slice(0, 4);
+    ? sortedComparables 
+    : sortedComparables.slice(0, 4);
 
   return (
     <div className="space-y-6">
@@ -202,15 +223,42 @@ export function PredictionResult({ result, carDetails }: PredictionResultProps) 
       {/* Similar Listings Gallery */}
       {result.comparables.length > 0 && (
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
-            <Car className="w-5 h-5 text-purple-500" />
-            Similar Listings
-          </h3>
+          {/* Header with Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+            <div className="flex items-center gap-2">
+              <Car className="w-5 h-5 text-purple-500" />
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                Similar Listings
+              </h3>
+              <button
+                onClick={() => setShowSimilarityInfo(true)}
+                className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                title="How we find similar cars"
+              >
+                <HelpCircle className="w-4 h-4" />
+              </button>
+            </div>
+            
+            {/* Sort Controls */}
+            <div className="flex items-center gap-2">
+              <ArrowUpDown className="w-4 h-4 text-slate-400" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="text-sm px-3 py-1.5 bg-slate-100 dark:bg-slate-700 border-0 rounded-lg focus:ring-2 focus:ring-green-500 text-slate-700 dark:text-slate-200"
+              >
+                <option value="match">Best Match</option>
+                <option value="price_low">Lowest Price</option>
+                <option value="price_high">Highest Price</option>
+                <option value="mileage_low">Lowest Mileage</option>
+              </select>
+            </div>
+          </div>
           
           {/* Gallery Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
             {displayedComparables.map((car, index) => (
-              <ComparableCarCard key={index} car={car} />
+              <ComparableCarCard key={`${car.year}-${car.manufacturer}-${car.model}-${index}`} car={car} />
             ))}
           </div>
 
@@ -233,6 +281,48 @@ export function PredictionResult({ result, carDetails }: PredictionResultProps) 
               )}
             </button>
           )}
+        </div>
+      )}
+
+      {/* Similarity Info Modal */}
+      {showSimilarityInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+            <button
+              onClick={() => setShowSimilarityInfo(false)}
+              className="absolute top-4 right-4 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+              <Info className="w-5 h-5 text-blue-500" />
+              How We Find Similar Cars
+            </h3>
+            
+            <div className="space-y-3 text-sm text-slate-600 dark:text-slate-400">
+              <p>
+                We use a weighted similarity algorithm to find the most comparable vehicles:
+              </p>
+              <ul className="list-disc list-inside space-y-2 ml-2">
+                <li><strong>Make & Model (High):</strong> Same manufacturer and model get priority</li>
+                <li><strong>Year (High):</strong> Within 2 years of your vehicle</li>
+                <li><strong>Mileage (Medium):</strong> Similar odometer readings (log-scaled)</li>
+                <li><strong>Condition (Medium):</strong> Matching condition rating</li>
+                <li><strong>Location (Light):</strong> Same state/region when available</li>
+              </ul>
+              <p className="pt-2">
+                The "match %" shows how closely each listing matches your criteria. Higher percentages indicate more similar vehicles.
+              </p>
+            </div>
+            
+            <button
+              onClick={() => setShowSimilarityInfo(false)}
+              className="w-full mt-6 py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-xl font-medium transition-colors"
+            >
+              Got it
+            </button>
+          </div>
         </div>
       )}
 
