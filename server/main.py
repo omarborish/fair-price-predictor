@@ -144,9 +144,15 @@ if PRODUCTION_FRONTEND_URL:
         www_variant = PRODUCTION_FRONTEND_URL.replace("https://", "https://www.")
         ALLOWED_ORIGINS.append(www_variant)
 
+# Allow Vercel preview deployments (all subdomains under vercel.app for this project)
+ALLOWED_ORIGINS.append("https://fair-price-predictor.vercel.app")
+ALLOWED_ORIGINS.append("https://fair-price-predictor-git-main-omar-borishs-projects.vercel.app")
+
+# Use allow_origin_regex to allow all Vercel preview URLs for this project
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"https://fair-price-predictor.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
