@@ -55,7 +55,7 @@ export default function HomePage() {
           {/* Trust Signal - Subtle and Credible */}
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-full text-sm text-slate-600 dark:text-slate-300">
             <Database className="w-4 h-4 text-blue-500" />
-            Based on 300,000+ real vehicle listings
+            Trained on 300,000+ real vehicle listings
           </div>
         </div>
       </section>
