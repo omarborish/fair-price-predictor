@@ -1,0 +1,592 @@
+{
+  "price_by_year": [
+    {
+      "year": 1995.0,
+      "median": 6495.0,
+      "mean": 8984.396702230844,
+      "count": 1031
+    },
+    {
+      "year": 1996.0,
+      "median": 5500.0,
+      "mean": 8015.795627376426,
+      "count": 1052
+    },
+    {
+      "year": 1997.0,
+      "median": 4900.0,
+      "mean": 7405.393808495321,
+      "count": 1389
+    },
+    {
+      "year": 1998.0,
+      "median": 4000.0,
+      "mean": 6887.483890954151,
+      "count": 1614
+    },
+    {
+      "year": 1999.0,
+      "median": 5200.0,
+      "mean": 8108.964157706093,
+      "count": 2511
+    },
+    {
+      "year": 2000.0,
+      "median": 4599.0,
+      "mean": 7140.293581081081,
+      "count": 2960
+    },
+    {
+      "year": 2001.0,
+      "median": 4900.0,
+      "mean": 7573.627870150435,
+      "count": 3789
+    },
+    {
+      "year": 2002.0,
+      "median": 4850.0,
+      "mean": 7156.029424040067,
+      "count": 4792
+    },
+    {
+      "year": 2003.0,
+      "median": 4995.0,
+      "mean": 7178.668271545498,
+      "count": 6231
+    },
+    {
+      "year": 2004.0,
+      "median": 5500.0,
+      "mean": 7501.0016356316055,
+      "count": 7948
+    },
+    {
+      "year": 2005.0,
+      "median": 5600.0,
+      "mean": 7900.071078698161,
+      "count": 9187
+    },
+    {
+      "year": 2006.0,
+      "median": 5999.0,
+      "mean": 8230.09186279876,
+      "count": 10962
+    },
+    {
+      "year": 2007.0,
+      "median": 6907.0,
+      "mean": 8940.294420931128,
+      "count": 12995
+    },
+    {
+      "year": 2008.0,
+      "median": 7500.0,
+      "mean": 9646.023731313267,
+      "count": 14917
+    },
+    {
+      "year": 2009.0,
+      "median": 7495.0,
+      "mean": 9397.92635405985,
+      "count": 10727
+    },
+    {
+      "year": 2010.0,
+      "median": 8950.0,
+      "mean": 10884.235357683165,
+      "count": 13881
+    },
+    {
+      "year": 2011.0,
+      "median": 10990.0,
+      "mean": 13672.291748803154,
+      "count": 17755
+    },
+    {
+      "year": 2012.0,
+      "median": 12500.0,
+      "mean": 15265.52379113985,
+      "count": 20722
+    },
+    {
+      "year": 2013.0,
+      "median": 14500.0,
+      "mean": 16477.244637992557,
+      "count": 26063
+    },
+    {
+      "year": 2014.0,
+      "median": 16990.0,
+      "mean": 19468.282888702797,
+      "count": 25077
+    },
+    {
+      "year": 2015.0,
+      "median": 19950.0,
+      "mean": 22538.283826720395,
+      "count": 25808
+    },
+    {
+      "year": 2016.0,
+      "median": 22590.0,
+      "mean": 24675.69230769231,
+      "count": 24921
+    },
+    {
+      "year": 2017.0,
+      "median": 25995.0,
+      "mean": 27506.07397233071,
+      "count": 30214
+    },
+    {
+      "year": 2018.0,
+      "median": 28998.0,
+      "mean": 30262.040502426866,
+      "count": 30492
+    },
+    {
+      "year": 2019.0,
+      "median": 32590.0,
+      "mean": 33796.54499697068,
+      "count": 21457
+    },
+    {
+      "year": 2020.0,
+      "median": 35990.0,
+      "mean": 36956.54562575942,
+      "count": 16460
+    },
+    {
+      "year": 2021.0,
+      "median": 39950.0,
+      "mean": 41512.285365853655,
+      "count": 820
+    }
+  ],
+  "price_by_manufacturer": [
+    {
+      "manufacturer": "ford",
+      "median": 17995.0,
+      "mean": 21669.475562412055,
+      "count": 58987
+    },
+    {
+      "manufacturer": "chevrolet",
+      "median": 16990.0,
+      "mean": 20523.92012417575,
+      "count": 44131
+    },
+    {
+      "manufacturer": "toyota",
+      "median": 14500.0,
+      "mean": 17625.172220154935,
+      "count": 29561
+    },
+    {
+      "manufacturer": "honda",
+      "median": 9500.0,
+      "mean": 11952.159417972498,
+      "count": 18762
+    },
+    {
+      "manufacturer": "nissan",
+      "median": 10950.0,
+      "mean": 13414.786376758184,
+      "count": 16281
+    },
+    {
+      "manufacturer": "jeep",
+      "median": 19862.5,
+      "mean": 20979.95015974441,
+      "count": 15650
+    },
+    {
+      "manufacturer": "ram",
+      "median": 30998.0,
+      "mean": 30945.376045109857,
+      "count": 15429
+    },
+    {
+      "manufacturer": "gmc",
+      "median": 24988.0,
+      "mean": 25870.505874947547,
+      "count": 14298
+    },
+    {
+      "manufacturer": "bmw",
+      "median": 18988.0,
+      "mean": 21101.05774842574,
+      "count": 13022
+    },
+    {
+      "manufacturer": "dodge",
+      "median": 12995.0,
+      "mean": 16883.718017600742,
+      "count": 10795
+    },
+    {
+      "manufacturer": "mercedes-benz",
+      "median": 19990.0,
+      "mean": 22328.595802228712,
+      "count": 9243
+    },
+    {
+      "manufacturer": "hyundai",
+      "median": 10990.0,
+      "mean": 12308.800472387808,
+      "count": 8891
+    },
+    {
+      "manufacturer": "subaru",
+      "median": 11995.0,
+      "mean": 14194.166783054005,
+      "count": 8592
+    },
+    {
+      "manufacturer": "volkswagen",
+      "median": 12979.0,
+      "mean": 13966.968571065021,
+      "count": 7859
+    },
+    {
+      "manufacturer": "lexus",
+      "median": 20388.0,
+      "mean": 20832.016090104586,
+      "count": 7458
+    },
+    {
+      "manufacturer": "kia",
+      "median": 11995.0,
+      "mean": 12872.996492704826,
+      "count": 7128
+    },
+    {
+      "manufacturer": "audi",
+      "median": 24990.0,
+      "mean": 25154.348955310506,
+      "count": 6892
+    },
+    {
+      "manufacturer": "cadillac",
+      "median": 18999.5,
+      "mean": 21562.53801765105,
+      "count": 5892
+    },
+    {
+      "manufacturer": "acura",
+      "median": 20590.0,
+      "mean": 21462.513483764447,
+      "count": 5451
+    },
+    {
+      "manufacturer": "chrysler",
+      "median": 8499.5,
+      "mean": 11231.750572519084,
+      "count": 5240
+    }
+  ],
+  "price_by_mileage": [
+    {
+      "mileage_band": "0-25k",
+      "median": 30998.0,
+      "mean": 32288.79308274063,
+      "count": 53287
+    },
+    {
+      "mileage_band": "25k-50k",
+      "median": 26990.0,
+      "mean": 28178.191577799094,
+      "count": 53169
+    },
+    {
+      "mileage_band": "50k-75k",
+      "median": 19995.0,
+      "mean": 22977.317101740293,
+      "count": 41832
+    },
+    {
+      "mileage_band": "75k-100k",
+      "median": 14860.0,
+      "mean": 17443.584099785814,
+      "count": 47622
+    },
+    {
+      "mileage_band": "100k-150k",
+      "median": 9988.0,
+      "mean": 12916.03952947773,
+      "count": 85607
+    },
+    {
+      "mileage_band": "150k+",
+      "median": 6500.0,
+      "mean": 9352.515287783777,
+      "count": 64267
+    }
+  ],
+  "price_by_transmission": [
+    {
+      "transmission": "automatic",
+      "median": 13818.0,
+      "mean": 17707.84906566216,
+      "count": 270780
+    },
+    {
+      "transmission": "manual",
+      "median": 10725.0,
+      "mean": 14762.608198406579,
+      "count": 15564
+    },
+    {
+      "transmission": "other",
+      "median": 28990.0,
+      "mean": 28635.865901571546,
+      "count": 58032
+    }
+  ],
+  "price_by_fuel": [
+    {
+      "fuel": "diesel",
+      "median": 34988.0,
+      "mean": 35221.206161364506,
+      "count": 20872
+    },
+    {
+      "fuel": "electric",
+      "median": 28500.0,
+      "mean": 27007.422055820287,
+      "count": 1469
+    },
+    {
+      "fuel": "gas",
+      "median": 14495.0,
+      "mean": 17502.070254228838,
+      "count": 290801
+    },
+    {
+      "fuel": "hybrid",
+      "median": 13000.0,
+      "mean": 15858.222866967548,
+      "count": 4653
+    },
+    {
+      "fuel": "other",
+      "median": 27990.0,
+      "mean": 28410.349921344434,
+      "count": 26063
+    }
+  ],
+  "price_by_drive": [
+    {
+      "drive": "4wd",
+      "median": 21990.0,
+      "mean": 24245.13455721384,
+      "count": 110087
+    },
+    {
+      "drive": "fwd",
+      "median": 10975.0,
+      "mean": 12990.930695606636,
+      "count": 89749
+    },
+    {
+      "drive": "rwd",
+      "median": 20288.0,
+      "mean": 21530.63213691796,
+      "count": 43296
+    }
+  ],
+  "price_by_type": [
+    {
+      "type": "SUV",
+      "median": 15248.0,
+      "mean": 18143.34736987861,
+      "count": 64997
+    },
+    {
+      "type": "bus",
+      "median": 14995.0,
+      "mean": 16303.526315789473,
+      "count": 228
+    },
+    {
+      "type": "convertible",
+      "median": 17500.0,
+      "mean": 20275.354638810197,
+      "count": 5648
+    },
+    {
+      "type": "coupe",
+      "median": 22590.0,
+      "mean": 23368.561877568074,
+      "count": 14359
+    },
+    {
+      "type": "hatchback",
+      "median": 14990.0,
+      "mean": 15694.171734353959,
+      "count": 14109
+    },
+    {
+      "type": "mini-van",
+      "median": 7724.5,
+      "mean": 9928.228368794325,
+      "count": 4230
+    },
+    {
+      "type": "offroad",
+      "median": 15000.0,
+      "mean": 18140.976982097185,
+      "count": 391
+    },
+    {
+      "type": "other",
+      "median": 28590.0,
+      "mean": 27871.497872108248,
+      "count": 18328
+    },
+    {
+      "type": "pickup",
+      "median": 28990.0,
+      "mean": 29099.00845682365,
+      "count": 38667
+    },
+    {
+      "type": "sedan",
+      "median": 11750.0,
+      "mean": 14506.138787216607,
+      "count": 73220
+    },
+    {
+      "type": "truck",
+      "median": 26995.0,
+      "mean": 28523.21469900755,
+      "count": 26097
+    },
+    {
+      "type": "van",
+      "median": 16950.0,
+      "mean": 18234.775077705566,
+      "count": 7078
+    },
+    {
+      "type": "wagon",
+      "median": 13590.0,
+      "mean": 14736.845605700713,
+      "count": 9262
+    }
+  ],
+  "depreciation_curve": [
+    {
+      "age": 4.0,
+      "median": 3500.0,
+      "mean": 5663.888888888889,
+      "count": 9
+    },
+    {
+      "age": 5.0,
+      "median": 39950.0,
+      "mean": 41512.285365853655,
+      "count": 820
+    },
+    {
+      "age": 6.0,
+      "median": 35990.0,
+      "mean": 36956.54562575942,
+      "count": 16460
+    },
+    {
+      "age": 7.0,
+      "median": 32590.0,
+      "mean": 33796.54499697068,
+      "count": 21457
+    },
+    {
+      "age": 8.0,
+      "median": 28998.0,
+      "mean": 30262.040502426866,
+      "count": 30492
+    },
+    {
+      "age": 9.0,
+      "median": 25995.0,
+      "mean": 27506.07397233071,
+      "count": 30214
+    },
+    {
+      "age": 10.0,
+      "median": 22590.0,
+      "mean": 24675.69230769231,
+      "count": 24921
+    },
+    {
+      "age": 11.0,
+      "median": 19950.0,
+      "mean": 22538.283826720395,
+      "count": 25808
+    },
+    {
+      "age": 12.0,
+      "median": 16990.0,
+      "mean": 19468.282888702797,
+      "count": 25077
+    },
+    {
+      "age": 13.0,
+      "median": 14500.0,
+      "mean": 16477.244637992557,
+      "count": 26063
+    },
+    {
+      "age": 14.0,
+      "median": 12500.0,
+      "mean": 15265.52379113985,
+      "count": 20722
+    },
+    {
+      "age": 15.0,
+      "median": 10990.0,
+      "mean": 13672.291748803154,
+      "count": 17755
+    },
+    {
+      "age": 16.0,
+      "median": 8950.0,
+      "mean": 10884.235357683165,
+      "count": 13881
+    },
+    {
+      "age": 17.0,
+      "median": 7495.0,
+      "mean": 9397.92635405985,
+      "count": 10727
+    },
+    {
+      "age": 18.0,
+      "median": 7500.0,
+      "mean": 9646.023731313267,
+      "count": 14917
+    },
+    {
+      "age": 19.0,
+      "median": 6907.0,
+      "mean": 8940.294420931128,
+      "count": 12995
+    },
+    {
+      "age": 20.0,
+      "median": 5999.0,
+      "mean": 8230.09186279876,
+      "count": 10962
+    }
+  ],
+  "overall_stats": {
+    "total_listings": 345784,
+    "median_price": 16095.0,
+    "mean_price": 19426.654130902527,
+    "median_year": 2014,
+    "median_odometer": 88756.0,
+    "unique_manufacturers": 41,
+    "unique_models": 301,
+    "generated_at": "2026-01-31T20:38:04.016142"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "mae": 3391.002695817468,
+  "rmse": 5302.645221059961,
+  "mape": 24.077384911478,
+  "within_5pct": 18.760212270630593,
+  "within_10pct": 36.19156412221467,
+  "within_15pct": 51.01725060369883,
+  "within_20pct": 63.19244617320011,
+  "within_25pct": 72.4091559784259,
+  "interval_coverage": 79.73307112801307,
+  "feature_importance": {},
+  "model_type": "histgb",
+  "training_samples": 276627,
+  "test_samples": 69156,
+  "computed_at": "2026-01-31T20:38:04.376069"
+}

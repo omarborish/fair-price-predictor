@@ -1,0 +1,11 @@
+# Fair Price Used Car Predictor - Robots.txt
+# https://www.robotstxt.org/
+
+User-agent: *
+Allow: /
+
+# Disallow API routes
+Disallow: /api/
+
+# Sitemap location (update with your actual domain)
+Sitemap: https://fairpricepredictor.com/sitemap.xml

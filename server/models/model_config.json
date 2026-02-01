@@ -1,0 +1,26 @@
+{
+  "numeric_features": [
+    "year",
+    "odometer",
+    "car_age",
+    "log_odometer"
+  ],
+  "categorical_features": [
+    "manufacturer",
+    "model",
+    "condition",
+    "cylinders",
+    "fuel",
+    "title_status",
+    "transmission",
+    "drive",
+    "type",
+    "paint_color",
+    "state"
+  ],
+  "target_column": "price",
+  "min_price": 1000,
+  "max_price": 100000,
+  "model_type": "histgb",
+  "trained_at": "2026-01-31T20:38:04.368070"
+}
