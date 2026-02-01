@@ -223,6 +223,7 @@ class PredictionResponse(BaseModel):
 
 # Global model storage
 models = {}
+preprocessor = None
 config = {}
 comparables_df = None
 feature_importance = {}
@@ -230,31 +231,39 @@ feature_importance = {}
 
 def load_models():
     """Load all trained models and data."""
-    global models, config, comparables_df, feature_importance
+    global models, preprocessor, config, comparables_df, feature_importance
     
     print("Loading models...")
+    
+    # Load preprocessor (MUST be loaded for prediction to work)
+    preprocessor_path = MODELS_DIR / "preprocessor.joblib"
+    if preprocessor_path.exists():
+        preprocessor = joblib.load(preprocessor_path)
+        print(f"[OK] Loaded preprocessor")
+    else:
+        print(f"[WARN] Preprocessor not found at {preprocessor_path}")
     
     # Load main model
     model_path = MODELS_DIR / "price_model.joblib"
     if model_path.exists():
         models['main'] = joblib.load(model_path)
-        print(f"✅ Loaded main model")
+        print(f"[OK] Loaded main model")
     else:
-        print(f"⚠️ Main model not found at {model_path}")
+        print(f"[WARN] Main model not found at {model_path}")
     
     # Load quantile models
     for name in ['low', 'median', 'high']:
         path = MODELS_DIR / f"quantile_{name}.joblib"
         if path.exists():
             models[f'quantile_{name}'] = joblib.load(path)
-            print(f"✅ Loaded quantile_{name} model")
+            print(f"[OK] Loaded quantile_{name} model")
     
     # Load config
     config_path = MODELS_DIR / "model_config.json"
     if config_path.exists():
         with open(config_path) as f:
             config.update(json.load(f))
-        print(f"✅ Loaded model config")
+        print(f"[OK] Loaded model config")
     
     # Load metrics/feature importance
     metrics_path = MODELS_DIR / "metrics.json"
@@ -262,15 +271,15 @@ def load_models():
         with open(metrics_path) as f:
             metrics = json.load(f)
             feature_importance.update(metrics.get('feature_importance', {}))
-        print(f"✅ Loaded feature importance")
+        print(f"[OK] Loaded feature importance")
     
     # Load comparables data
     comparables_path = MODELS_DIR / "comparables_data.parquet"
     if comparables_path.exists():
         comparables_df = pd.read_parquet(comparables_path)
-        print(f"✅ Loaded {len(comparables_df):,} comparable listings")
+        print(f"[OK] Loaded {len(comparables_df):,} comparable listings")
     
-    return models
+    return models, preprocessor
 
 
 @app.on_event("startup")
@@ -611,9 +620,14 @@ def get_cache_key(car: CarDetails) -> str:
 @app.post("/predict", response_model=PredictionResponse)
 async def predict_price(request: Request, car: CarDetails):
     """Predict the fair market price for a used car."""
+    global preprocessor
     
     if 'main' not in models:
         logger.error("Prediction requested but model not loaded")
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
+    
+    if preprocessor is None:
+        logger.error("Prediction requested but preprocessor not loaded")
         raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
     
     # Check cache first
@@ -631,14 +645,17 @@ async def predict_price(request: Request, car: CarDetails):
         # Prepare input
         input_df = prepare_input(car)
         
+        # Transform input using preprocessor (converts categorical to numeric)
+        input_transformed = preprocessor.transform(input_df)
+        
         # Get predictions (models predict log-transformed price)
-        main_pred_log = models['main'].predict(input_df)[0]
+        main_pred_log = models['main'].predict(input_transformed)[0]
         predicted_price = float(np.expm1(main_pred_log))
         
         # Get quantile predictions for confidence interval
         if 'quantile_low' in models and 'quantile_high' in models:
-            low_pred_log = models['quantile_low'].predict(input_df)[0]
-            high_pred_log = models['quantile_high'].predict(input_df)[0]
+            low_pred_log = models['quantile_low'].predict(input_transformed)[0]
+            high_pred_log = models['quantile_high'].predict(input_transformed)[0]
             price_low = float(np.expm1(low_pred_log))
             price_high = float(np.expm1(high_pred_log))
         else:
