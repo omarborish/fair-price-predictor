@@ -4,6 +4,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { CookieConsent } from '@/components/CookieConsent';
+import { UmamiAnalytics } from '@/components/Analytics';
 
 export const metadata: Metadata = {
   title: 'Fair Price Used Car Predictor | Get Accurate Market Values',
@@ -42,6 +43,7 @@ export default function RootLayout({
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1370563938469727"
           crossOrigin="anonymous"
         ></script>
+        <UmamiAnalytics />
       </head>
       <body className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
         <ThemeProvider>

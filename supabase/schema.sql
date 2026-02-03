@@ -69,6 +69,35 @@ CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
 CREATE INDEX IF NOT EXISTS idx_comments_is_hidden ON comments(is_hidden);
 CREATE INDEX IF NOT EXISTS idx_analytics_month ON analytics_snapshots(month DESC);
 
+-- Price evaluation submissions (for comparative evaluation)
+CREATE TABLE IF NOT EXISTS price_evaluations (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  year INTEGER NOT NULL,
+  make VARCHAR(100) NOT NULL,
+  model VARCHAR(100) NOT NULL,
+  mileage INTEGER NOT NULL,
+  our_prediction_low DECIMAL(10, 2),
+  our_prediction_mid DECIMAL(10, 2) NOT NULL,
+  our_prediction_high DECIMAL(10, 2),
+  actual_sale_price DECIMAL(10, 2) NOT NULL,
+  submitted_by VARCHAR(100) DEFAULT 'Anonymous'
+);
+
+-- Enable RLS on price_evaluations
+ALTER TABLE price_evaluations ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can insert evaluations
+CREATE POLICY "Anyone can submit evaluations" ON price_evaluations
+  FOR INSERT WITH CHECK (true);
+
+-- Anyone can read evaluations (for aggregate stats)
+CREATE POLICY "Public can read evaluations" ON price_evaluations
+  FOR SELECT USING (true);
+
+-- Index for evaluation queries
+CREATE INDEX IF NOT EXISTS idx_evaluations_created_at ON price_evaluations(created_at DESC);
+
 -- Insert sample analytics data (you can remove this in production)
 INSERT INTO analytics_snapshots (month, visits, avg_session_duration, pages_per_visit) VALUES
   ('2025-08', 1250, 145.5, 2.8),

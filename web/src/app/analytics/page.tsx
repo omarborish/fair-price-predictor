@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { 
   BarChart3, Users, Clock, FileText, TrendingUp, 
-  AlertCircle, RefreshCw, Eye
+  AlertCircle, RefreshCw, Eye, ExternalLink
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
@@ -12,19 +12,18 @@ import {
 interface AnalyticsData {
   month: string;
   visits: number;
+  pageviews?: number;
+  visitors?: number;
   avg_session_duration: number;
   pages_per_visit: number;
 }
 
-// Sample data - in production this would come from Supabase/analytics provider
-const sampleData: AnalyticsData[] = [
-  { month: '2025-08', visits: 1250, avg_session_duration: 145.5, pages_per_visit: 2.8 },
-  { month: '2025-09', visits: 1890, avg_session_duration: 152.3, pages_per_visit: 3.1 },
-  { month: '2025-10', visits: 2340, avg_session_duration: 148.7, pages_per_visit: 2.9 },
-  { month: '2025-11', visits: 2780, avg_session_duration: 156.2, pages_per_visit: 3.2 },
-  { month: '2025-12', visits: 3150, avg_session_duration: 162.8, pages_per_visit: 3.4 },
-  { month: '2026-01', visits: 3520, avg_session_duration: 158.4, pages_per_visit: 3.3 },
-];
+interface AnalyticsResponse {
+  data: AnalyticsData[];
+  source: 'umami' | 'sample' | 'fallback';
+  lastUpdated: string;
+  note?: string;
+}
 
 function formatMonth(monthStr: string): string {
   const [year, month] = monthStr.split('-');
@@ -42,16 +41,22 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<AnalyticsData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
+  const [source, setSource] = useState<string>('');
 
   useEffect(() => {
-    // Simulate loading from database
     const loadAnalytics = async () => {
       setIsLoading(true);
-      // In production, this would fetch from Supabase
-      await new Promise(resolve => setTimeout(resolve, 500));
-      setData(sampleData);
-      setLastUpdated(new Date());
-      setIsLoading(false);
+      try {
+        const res = await fetch('/api/analytics');
+        const result: AnalyticsResponse = await res.json();
+        setData(result.data);
+        setLastUpdated(new Date(result.lastUpdated));
+        setSource(result.source);
+      } catch (error) {
+        console.error('Failed to load analytics:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     loadAnalytics();
@@ -231,6 +236,35 @@ export default function AnalyticsPage() {
           <span>Server time (UTC)</span>
         </div>
 
+        {/* Data Source Note */}
+        {source === 'sample' && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-4 border border-amber-200 dark:border-amber-800">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-amber-700 dark:text-amber-300">
+                <p className="font-medium mb-1">Sample Data</p>
+                <p>
+                  These are placeholder statistics. Live analytics from Umami will appear once configured.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {source === 'umami' && (
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800">
+            <div className="flex items-start gap-3">
+              <ExternalLink className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-green-700 dark:text-green-300">
+                <p className="font-medium mb-1">Live Data from Umami</p>
+                <p>
+                  These statistics are fetched in real-time from our privacy-focused analytics provider.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Privacy Note */}
         <div className="bg-slate-100 dark:bg-slate-800/50 rounded-xl p-4 border border-slate-200 dark:border-slate-700">
           <div className="flex items-start gap-3">
@@ -240,7 +274,7 @@ export default function AnalyticsPage() {
               <p>
                 These statistics are aggregated and anonymized. I don't track individual users, 
                 collect personal information, or store IP addresses. Analytics are collected using 
-                privacy-friendly methods that respect your browsing experience.
+                Umami—a privacy-friendly, cookie-free analytics solution that respects your browsing experience.
               </p>
             </div>
           </div>

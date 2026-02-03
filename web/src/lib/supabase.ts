@@ -1,9 +1,36 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+// Create a dummy client for build time when env vars aren't available
+let supabase: SupabaseClient;
+
+if (supabaseUrl && supabaseAnonKey) {
+  supabase = createClient(supabaseUrl, supabaseAnonKey);
+} else {
+  // Create a mock client that will fail gracefully
+  supabase = {
+    from: () => ({
+      select: () => Promise.resolve({ data: [], error: { message: 'Supabase not configured' } }),
+      insert: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }),
+      update: () => ({ eq: () => ({ select: () => ({ single: () => Promise.resolve({ data: null, error: { message: 'Supabase not configured' } }) }) }) }),
+      delete: () => ({ eq: () => Promise.resolve({ error: { message: 'Supabase not configured' } }) }),
+      eq: () => ({ select: () => Promise.resolve({ data: [], error: null }) }),
+      order: () => ({ limit: () => Promise.resolve({ data: [], error: null }) }),
+    }),
+    rpc: () => Promise.resolve({ error: { message: 'Supabase not configured' } }),
+  } as unknown as SupabaseClient;
+}
+
+export { supabase };
+
+/**
+ * Check if Supabase is properly configured
+ */
+export function isSupabaseConfigured(): boolean {
+  return !!(supabaseUrl && supabaseAnonKey);
+}
 
 // Types for our database tables
 export interface Comment {
