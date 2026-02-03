@@ -3,8 +3,9 @@
 import { useState, useEffect } from 'react';
 import { 
   MessageSquare, Send, ThumbsUp, Clock, User, 
-  AlertCircle, Loader2, CheckCircle2
+  AlertCircle, Loader2, CheckCircle2, ImagePlus
 } from 'lucide-react';
+import Image from 'next/image';
 
 interface Comment {
   id: string;
@@ -13,35 +14,50 @@ interface Comment {
   content: string;
   parent_id: string | null;
   upvotes: number;
+  avatar_url?: string;
 }
 
-// Sample comments for demonstration
-const sampleComments: Comment[] = [
-  {
-    id: '1',
-    created_at: '2026-01-28T14:30:00Z',
-    name: 'CarBuyer2026',
-    content: 'Used this to check a 2019 Camry I was looking at. The price range was spot on with what the dealer was asking. Helped me feel confident about the deal!',
-    parent_id: null,
-    upvotes: 12,
-  },
-  {
-    id: '2',
-    created_at: '2026-01-26T09:15:00Z',
-    name: 'Anonymous',
-    content: 'Would be great to see Canadian market data too. Currently it seems US-focused. Still useful for ballpark estimates though.',
-    parent_id: null,
-    upvotes: 8,
-  },
-  {
-    id: '3',
-    created_at: '2026-01-24T18:45:00Z',
-    name: 'FirstTimeSeller',
-    content: 'I was about to list my car way too low. This tool showed me the fair range and I ended up getting $2,000 more than I originally planned to ask. Thank you!',
-    parent_id: null,
-    upvotes: 15,
-  },
-];
+// Generate a random avatar URL based on a seed (name or ID)
+function getAvatarUrl(seed: string): string {
+  // Using DiceBear API for random avatars - free and no API key needed
+  const styles = ['adventurer', 'avataaars', 'bottts', 'fun-emoji', 'lorelei', 'micah', 'miniavs', 'personas'];
+  const style = styles[Math.abs(hashCode(seed)) % styles.length];
+  return `https://api.dicebear.com/7.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
+}
+
+// Simple hash function for consistent avatar per user
+function hashCode(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash;
+}
+
+// Get upvoted comment IDs from localStorage
+function getUpvotedIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const stored = localStorage.getItem('upvoted_comments');
+    return stored ? new Set(JSON.parse(stored)) : new Set();
+  } catch {
+    return new Set();
+  }
+}
+
+// Save upvoted comment ID to localStorage
+function saveUpvotedId(id: string): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const upvoted = getUpvotedIds();
+    upvoted.add(id);
+    localStorage.setItem('upvoted_comments', JSON.stringify([...upvoted]));
+  } catch {
+    // Ignore localStorage errors
+  }
+}
 
 function formatTimeAgo(dateStr: string): string {
   const date = new Date(dateStr);
@@ -65,19 +81,32 @@ export default function CommunityPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'upvotes'>('newest');
+  const [upvotedIds, setUpvotedIds] = useState<Set<string>>(new Set());
   // Honeypot field for spam protection
   const [honeypot, setHoneypot] = useState('');
 
   useEffect(() => {
     loadComments();
+    setUpvotedIds(getUpvotedIds());
   }, []);
 
   const loadComments = async () => {
     setIsLoading(true);
-    // In production, this would fetch from Supabase
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setComments(sampleComments);
-    setIsLoading(false);
+    try {
+      const res = await fetch('/api/comments');
+      if (res.ok) {
+        const data = await res.json();
+        setComments(data.comments || []);
+      } else {
+        // If API fails, show empty state
+        setComments([]);
+      }
+    } catch (err) {
+      console.error('Failed to load comments:', err);
+      setComments([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -107,35 +136,64 @@ export default function CommunityPage() {
     setError(null);
 
     try {
-      // In production, this would call Supabase
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const res = await fetch('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim() || 'Anonymous',
+          content: content.trim(),
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to post comment');
+      }
+
+      const data = await res.json();
       
-      const newComment: Comment = {
-        id: Date.now().toString(),
-        created_at: new Date().toISOString(),
-        name: name.trim() || 'Anonymous',
-        content: content.trim(),
-        parent_id: null,
-        upvotes: 0,
-      };
-      
-      setComments([newComment, ...comments]);
+      // Add the new comment to the list
+      setComments([data.comment, ...comments]);
       setName('');
       setContent('');
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
     } catch (err) {
-      setError('Failed to post comment. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to post comment. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleUpvote = async (id: string) => {
-    // In production, this would call Supabase
+    // Check if already upvoted
+    if (upvotedIds.has(id)) {
+      return; // Already upvoted
+    }
+
+    // Optimistic update
     setComments(comments.map(c => 
       c.id === id ? { ...c, upvotes: c.upvotes + 1 } : c
     ));
+    
+    // Save to localStorage
+    saveUpvotedId(id);
+    setUpvotedIds(new Set([...upvotedIds, id]));
+
+    // Call API
+    try {
+      await fetch('/api/comments/upvote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      });
+    } catch (err) {
+      // Revert on error
+      setComments(comments.map(c => 
+        c.id === id ? { ...c, upvotes: c.upvotes - 1 } : c
+      ));
+      console.error('Failed to upvote:', err);
+    }
   };
 
   const sortedComments = [...comments].sort((a, b) => {
@@ -310,39 +368,62 @@ export default function CommunityPage() {
               </p>
             </div>
           ) : (
-            sortedComments.map(comment => (
-              <div 
-                key={comment.id}
-                className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-8 h-8 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium text-slate-900 dark:text-white">
-                      {comment.name}
-                    </p>
-                    <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                      <Clock className="w-3 h-3" />
-                      {formatTimeAgo(comment.created_at)}
+            sortedComments.map(comment => {
+              const hasUpvoted = upvotedIds.has(comment.id);
+              const avatarUrl = comment.avatar_url || getAvatarUrl(comment.name + comment.id);
+              
+              return (
+                <div 
+                  key={comment.id}
+                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6"
+                >
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+                      <img 
+                        src={avatarUrl}
+                        alt={`${comment.name}'s avatar`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          // Fallback to User icon if avatar fails
+                          e.currentTarget.style.display = 'none';
+                          e.currentTarget.parentElement!.classList.add('flex', 'items-center', 'justify-center');
+                          const icon = document.createElement('div');
+                          icon.innerHTML = '<svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>';
+                          e.currentTarget.parentElement!.appendChild(icon);
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900 dark:text-white">
+                        {comment.name}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                        <Clock className="w-3 h-3" />
+                        {formatTimeAgo(comment.created_at)}
+                      </div>
                     </div>
                   </div>
+                  
+                  <p className="text-slate-700 dark:text-slate-300 mb-4 whitespace-pre-wrap">
+                    {comment.content}
+                  </p>
+                  
+                  <button
+                    onClick={() => handleUpvote(comment.id)}
+                    disabled={hasUpvoted}
+                    className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                      hasUpvoted 
+                        ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 cursor-default'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+                    }`}
+                    title={hasUpvoted ? 'You already upvoted this' : 'Upvote this comment'}
+                  >
+                    <ThumbsUp className={`w-4 h-4 ${hasUpvoted ? 'fill-current' : ''}`} />
+                    {comment.upvotes}
+                  </button>
                 </div>
-                
-                <p className="text-slate-700 dark:text-slate-300 mb-4">
-                  {comment.content}
-                </p>
-                
-                <button
-                  onClick={() => handleUpvote(comment.id)}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                >
-                  <ThumbsUp className="w-4 h-4" />
-                  {comment.upvotes}
-                </button>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 

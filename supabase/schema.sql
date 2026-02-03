@@ -48,12 +48,16 @@ ALTER TABLE comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE analytics_snapshots ENABLE ROW LEVEL SECURITY;
 
--- Comments: Anyone can read non-hidden comments, anyone can insert
+-- Comments: Anyone can read non-hidden comments, anyone can insert, anyone can upvote
 CREATE POLICY "Public can read non-hidden comments" ON comments
   FOR SELECT USING (is_hidden = false);
 
 CREATE POLICY "Anyone can create comments" ON comments
   FOR INSERT WITH CHECK (true);
+
+-- Allow upvote updates (only upvotes field can be modified by public)
+CREATE POLICY "Anyone can upvote comments" ON comments
+  FOR UPDATE USING (is_hidden = false);
 
 -- Feedback: Only insert allowed (no public read)
 CREATE POLICY "Anyone can submit feedback" ON feedback
