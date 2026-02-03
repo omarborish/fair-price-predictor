@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
             
             {/* Big CTA to Umami Dashboard */}
             <a
-              href="https://cloud.umami.is/share/eS8m2CgXLdCzHXy7/Fair%20Price%20Predictor"
+              href="https://cloud.umami.is/share/5vqePCHlxpXn6BX6"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-8 py-4 bg-white text-indigo-600 font-bold text-lg rounded-2xl hover:bg-indigo-50 transition-all shadow-xl hover:shadow-2xl hover:scale-105 transform"
@@ -140,7 +140,7 @@ export default function AnalyticsPage() {
               </p>
             </div>
             <a
-              href="https://cloud.umami.is/share/eS8m2CgXLdCzHXy7/Fair%20Price%20Predictor"
+              href="https://cloud.umami.is/share/5vqePCHlxpXn6BX6"
               target="_blank"
               rel="noopener noreferrer"
               className="flex-shrink-0 inline-flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 font-bold rounded-xl hover:bg-indigo-50 transition-colors shadow-lg"
@@ -334,7 +334,7 @@ export default function AnalyticsPage() {
             See real-time visitors, geographic distribution, device types, and more on the live dashboard.
           </p>
           <a
-            href="https://cloud.umami.is/share/eS8m2CgXLdCzHXy7/Fair%20Price%20Predictor"
+            href="https://cloud.umami.is/share/5vqePCHlxpXn6BX6"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
@@ -352,7 +352,7 @@ export default function AnalyticsPage() {
             <span>Summary last updated: {lastUpdated.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</span>
           </div>
           <a 
-            href="https://cloud.umami.is/share/eS8m2CgXLdCzHXy7/Fair%20Price%20Predictor"
+            href="https://cloud.umami.is/share/5vqePCHlxpXn6BX6"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-1 text-indigo-600 dark:text-indigo-400 hover:underline"
