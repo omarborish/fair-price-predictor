@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { supabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase-admin';
 
 const VALID_CATEGORIES = new Set(['bug', 'idea', 'data_issue', 'other']);
 
@@ -8,7 +9,7 @@ const VALID_CATEGORIES = new Set(['bug', 'idea', 'data_issue', 'other']);
  * Submit private feedback
  */
 export async function POST(request: NextRequest) {
-  if (!isSupabaseConfigured()) {
+  if (!isSupabaseConfigured() && !isSupabaseAdminConfigured()) {
     return NextResponse.json(
       { error: 'Feedback is currently unavailable. Please try again later.' },
       { status: 503 }
@@ -42,7 +43,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const client = isSupabaseAdminConfigured() && supabaseAdmin ? supabaseAdmin : supabase;
+    const { data, error } = await client
       .from('feedback')
       .insert([
         {
