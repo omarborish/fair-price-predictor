@@ -1,31 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
-
 /**
  * Verify admin authentication
  */
 function verifyAdmin(request: NextRequest): boolean {
-  const authHeader = request.headers.get('Authorization');
-  
-  // Debug logging (remove in production)
-  console.log('Admin auth attempt:', {
-    hasAuthHeader: !!authHeader,
-    hasAdminSecret: !!ADMIN_SECRET,
-    adminSecretLength: ADMIN_SECRET?.length,
-  });
-  
-  if (!authHeader || !ADMIN_SECRET) {
-    console.log('Auth failed: missing header or secret');
+  try {
+    const authHeader = request.headers.get('Authorization');
+    const adminSecret = process.env.ADMIN_SECRET_KEY;
+    
+    if (!authHeader || !adminSecret) {
+      return false;
+    }
+    
+    const token = authHeader.replace('Bearer ', '');
+    return token === adminSecret;
+  } catch (error) {
+    console.error('Auth verification error:', error);
     return false;
   }
-  
-  const token = authHeader.replace('Bearer ', '');
-  const isValid = token === ADMIN_SECRET;
-  console.log('Token comparison:', { tokenLength: token.length, isValid });
-  
-  return isValid;
 }
 
 /**
@@ -33,39 +26,41 @@ function verifyAdmin(request: NextRequest): boolean {
  * Get all comments (including hidden) for moderation
  */
 export async function GET(request: NextRequest) {
-  if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  // If Supabase isn't configured, return sample data for admin testing
-  if (!isSupabaseConfigured()) {
-    return NextResponse.json({ 
-      comments: [
-        {
-          id: 'sample-1',
-          created_at: new Date().toISOString(),
-          name: 'Test User',
-          content: 'This is a sample comment for admin testing.',
-          upvotes: 5,
-          is_hidden: false,
-        }
-      ],
-      note: 'Supabase not configured - showing sample data'
-    });
-  }
-
   try {
+    if (!verifyAdmin(request)) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // If Supabase isn't configured, return sample data for admin testing
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({ 
+        comments: [
+          {
+            id: 'sample-1',
+            created_at: new Date().toISOString(),
+            name: 'Test User',
+            content: 'This is a sample comment for admin testing. Supabase is not configured.',
+            upvotes: 5,
+            is_hidden: false,
+          }
+        ],
+        note: 'Supabase not configured - showing sample data'
+      });
+    }
+
     const { data, error } = await supabase
       .from('comments')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) {
+      console.error('Supabase error:', error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ comments: data });
+    return NextResponse.json({ comments: data || [] });
   } catch (error) {
+    console.error('Admin comments GET error:', error);
     return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
   }
 }
