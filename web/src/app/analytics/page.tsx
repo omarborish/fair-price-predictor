@@ -102,8 +102,8 @@ export default function AnalyticsPage() {
               Public Analytics
             </h1>
             <p className="text-xl text-blue-100 mb-8 max-w-2xl mx-auto">
-              Transparent usage statistics for this project. 
-              I believe in openness—see exactly how this tool is being used.
+              This tool is free and open. I wanted to show it's actually being used—so 
+              here's real traffic data, no secrets, no gimmicks.
             </p>
             
             {/* Big CTA to Umami Dashboard */}
@@ -118,7 +118,7 @@ export default function AnalyticsPage() {
               <ArrowUpRight className="w-5 h-5" />
             </a>
             <p className="text-sm text-blue-200 mt-4">
-              Real-time visitor tracking powered by Umami Analytics
+              Real-time stats on Umami (I didn't pay for API access, so a link it is!)
             </p>
           </div>
         </div>
@@ -132,11 +132,12 @@ export default function AnalyticsPage() {
             <div className="text-center sm:text-left">
               <div className="flex items-center gap-2 justify-center sm:justify-start mb-2">
                 <span className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></span>
-                <span className="text-sm font-medium text-indigo-100">Live Tracking</span>
+                <span className="text-sm font-medium text-indigo-100">The Real Data</span>
               </div>
-              <h2 className="text-2xl font-bold mb-2">Real-Time Analytics Dashboard</h2>
+              <h2 className="text-2xl font-bold mb-2">See Actual Live Stats Here</h2>
               <p className="text-indigo-100">
-                Click below to see live visitor data, page views, countries, devices, and more.
+                This is where the real numbers live—visitors, countries, devices, browsers. 
+                No API access = no embedded charts, but the dashboard tells the full story.
               </p>
             </div>
             <a
@@ -157,15 +158,35 @@ export default function AnalyticsPage() {
             <Eye className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
             <div>
               <p className="font-medium text-blue-900 dark:text-blue-100">
-                Why I share this publicly
+                Why this page exists
               </p>
               <p className="text-sm text-blue-700 dark:text-blue-300 mt-1">
-                I believe in transparency. These analytics show real usage without exposing any personal data—no 
-                IPs, no user identifiers, no individual browsing trails. Just aggregate numbers to show this tool 
-                is actually being used and helping people.
+                I built this tool to be completely free—no login, no paywall, no subscription. 
+                I wanted a public analytics page to show recruiters and visitors that this project 
+                actually gets real traffic and helps real people. Transparency builds trust. 
+                <span className="block mt-2">
+                  The summary stats below are sample/placeholder data. For the <strong>real numbers</strong>, 
+                  click the live dashboard link above—Umami's free tier doesn't include API access, 
+                  so embedding live data here wasn't an option without paying. The link works great though!
+                </span>
               </p>
             </div>
           </div>
+        </div>
+
+        {/* Stats Cards - Sample Data Notice */}
+        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3 text-center">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            <strong>Note:</strong> The numbers below are sample/placeholder data. 
+            <a 
+              href="https://cloud.umami.is/share/5vqePCHlxpXn6BX6" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline ml-1 font-medium"
+            >
+              Click here for real stats
+            </a>
+          </p>
         </div>
 
         {/* Stats Cards */}
@@ -328,10 +349,11 @@ export default function AnalyticsPage() {
         <div className="bg-slate-100 dark:bg-slate-800/50 rounded-xl p-6 text-center">
           <Globe className="w-8 h-8 text-indigo-500 mx-auto mb-3" />
           <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
-            Want More Details?
+            The charts above are placeholder data
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-            See real-time visitors, geographic distribution, device types, and more on the live dashboard.
+            I'd love to show live embedded charts, but Umami's free tier doesn't include API access. 
+            Maybe one day! For now, click below to see the actual real-time data.
           </p>
           <a
             href="https://cloud.umami.is/share/5vqePCHlxpXn6BX6"
@@ -340,7 +362,7 @@ export default function AnalyticsPage() {
             className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors"
           >
             <BarChart3 className="w-4 h-4" />
-            View Full Dashboard
+            View Real Dashboard
             <ExternalLink className="w-4 h-4" />
           </a>
         </div>
@@ -367,11 +389,11 @@ export default function AnalyticsPage() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0" />
             <div className="text-sm text-slate-600 dark:text-slate-400">
-              <p className="font-medium text-slate-700 dark:text-slate-300 mb-1">Privacy First</p>
+              <p className="font-medium text-slate-700 dark:text-slate-300 mb-1">Privacy-Friendly Analytics</p>
               <p>
-                These statistics are aggregated and anonymized. I don't track individual users, 
-                collect personal information, or store IP addresses. Analytics are collected using 
-                Umami—a privacy-friendly, cookie-free analytics solution that respects your browsing experience.
+                I use Umami because it's privacy-focused—no cookies, no personal data collection, 
+                no IP tracking. Just anonymous aggregate numbers. The goal is transparency about 
+                site usage without compromising visitor privacy.
               </p>
             </div>
           </div>
