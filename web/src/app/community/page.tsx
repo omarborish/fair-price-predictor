@@ -53,7 +53,7 @@ function saveUpvotedId(id: string): void {
   try {
     const upvoted = getUpvotedIds();
     upvoted.add(id);
-    localStorage.setItem('upvoted_comments', JSON.stringify([...upvoted]));
+    localStorage.setItem('upvoted_comments', JSON.stringify(Array.from(upvoted)));
   } catch {
     // Ignore localStorage errors
   }
@@ -178,7 +178,7 @@ export default function CommunityPage() {
     
     // Save to localStorage
     saveUpvotedId(id);
-    setUpvotedIds(new Set([...upvotedIds, id]));
+    setUpvotedIds(new Set([...Array.from(upvotedIds), id]));
 
     // Call API
     try {
