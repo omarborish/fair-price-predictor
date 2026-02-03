@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
-import { getMonthlyAnalytics, isAnalyticsConfigured } from '@/lib/analytics-api';
 
-// Sample data for when Umami is not configured
+// Sample data - Umami tracks visitors but API requires paid plan
+// Real-time stats viewable at cloud.umami.is dashboard
 const sampleData = [
   { month: '2025-08', visits: 1250, pageviews: 3500, visitors: 980, avg_session_duration: 145.5, pages_per_visit: 2.8 },
   { month: '2025-09', visits: 1890, pageviews: 5859, visitors: 1420, avg_session_duration: 152.3, pages_per_visit: 3.1 },
@@ -12,31 +12,12 @@ const sampleData = [
 ];
 
 export async function GET() {
-  try {
-    // Check if Umami is configured
-    if (isAnalyticsConfigured()) {
-      const data = await getMonthlyAnalytics(6);
-      return NextResponse.json({
-        data,
-        source: 'umami',
-        lastUpdated: new Date().toISOString(),
-      });
-    }
-
-    // Return sample data if not configured
-    return NextResponse.json({
-      data: sampleData,
-      source: 'sample',
-      lastUpdated: new Date().toISOString(),
-      note: 'Using sample data. Configure UMAMI_API_KEY and NEXT_PUBLIC_UMAMI_WEBSITE_ID for live analytics.',
-    });
-  } catch (error) {
-    console.error('Analytics API error:', error);
-    return NextResponse.json({
-      data: sampleData,
-      source: 'fallback',
-      lastUpdated: new Date().toISOString(),
-      error: 'Failed to fetch live analytics',
-    });
-  }
+  // Return sample data - Umami free tier doesn't support API access
+  // Visitors are still tracked and viewable in Umami dashboard
+  return NextResponse.json({
+    data: sampleData,
+    source: 'sample',
+    lastUpdated: new Date().toISOString(),
+    note: 'Sample data shown. Real-time tracking active via Umami.',
+  });
 }

@@ -45,15 +45,13 @@ export default function RootLayout({
         ></script>
       </head>
       <body className="min-h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
-        {/* Umami Analytics */}
-        {process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID && (
-          <Script
-            defer
-            src={process.env.NEXT_PUBLIC_UMAMI_SRC || 'https://cloud.umami.is/script.js'}
-            data-website-id={process.env.NEXT_PUBLIC_UMAMI_WEBSITE_ID}
-            strategy="afterInteractive"
-          />
-        )}
+        {/* Umami Analytics - hardcoded to avoid hydration issues */}
+        <Script
+          defer
+          src="https://cloud.umami.is/script.js"
+          data-website-id="3f0e01d2-7695-43e3-8ea6-15aa3c94a030"
+          strategy="afterInteractive"
+        />
         <ThemeProvider>
           <div className="flex flex-col min-h-screen">
             <Header />
