@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
 
@@ -8,12 +8,24 @@ const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
  */
 function verifyAdmin(request: NextRequest): boolean {
   const authHeader = request.headers.get('Authorization');
+  
+  // Debug logging (remove in production)
+  console.log('Admin auth attempt:', {
+    hasAuthHeader: !!authHeader,
+    hasAdminSecret: !!ADMIN_SECRET,
+    adminSecretLength: ADMIN_SECRET?.length,
+  });
+  
   if (!authHeader || !ADMIN_SECRET) {
+    console.log('Auth failed: missing header or secret');
     return false;
   }
   
   const token = authHeader.replace('Bearer ', '');
-  return token === ADMIN_SECRET;
+  const isValid = token === ADMIN_SECRET;
+  console.log('Token comparison:', { tokenLength: token.length, isValid });
+  
+  return isValid;
 }
 
 /**
@@ -23,6 +35,23 @@ function verifyAdmin(request: NextRequest): boolean {
 export async function GET(request: NextRequest) {
   if (!verifyAdmin(request)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // If Supabase isn't configured, return sample data for admin testing
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ 
+      comments: [
+        {
+          id: 'sample-1',
+          created_at: new Date().toISOString(),
+          name: 'Test User',
+          content: 'This is a sample comment for admin testing.',
+          upvotes: 5,
+          is_hidden: false,
+        }
+      ],
+      note: 'Supabase not configured - showing sample data'
+    });
   }
 
   try {
