@@ -47,7 +47,7 @@ export async function getWebsiteStats(
       `${UMAMI_API_URL}/api/websites/${UMAMI_WEBSITE_ID}/stats?startAt=${startAt}&endAt=${endAt}`,
       {
         headers: {
-          'Authorization': `Bearer ${UMAMI_API_KEY}`,
+          'x-umami-api-key': UMAMI_API_KEY,
           'Content-Type': 'application/json',
         },
         next: { revalidate: 3600 }, // Cache for 1 hour
@@ -83,7 +83,7 @@ export async function getPageviews(
       `${UMAMI_API_URL}/api/websites/${UMAMI_WEBSITE_ID}/pageviews?startAt=${startAt}&endAt=${endAt}&unit=${unit}`,
       {
         headers: {
-          'Authorization': `Bearer ${UMAMI_API_KEY}`,
+          'x-umami-api-key': UMAMI_API_KEY,
           'Content-Type': 'application/json',
         },
         next: { revalidate: 3600 },
