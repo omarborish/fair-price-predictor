@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase-admin';
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
 
@@ -25,11 +25,15 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
+    return NextResponse.json({ error: 'Supabase admin is not configured' }, { status: 500 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
 
-    let query = supabase
+    let query = supabaseAdmin
       .from('feedback')
       .select('*')
       .order('created_at', { ascending: false });
@@ -59,6 +63,10 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
+    return NextResponse.json({ error: 'Supabase admin is not configured' }, { status: 500 });
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
@@ -67,7 +75,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Feedback ID required' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('feedback')
       .delete()
       .eq('id', id);

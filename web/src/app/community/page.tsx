@@ -82,6 +82,9 @@ export default function CommunityPage() {
   const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<'newest' | 'upvotes'>('newest');
   const [upvotedIds, setUpvotedIds] = useState<Set<string>>(new Set());
+  const [replyToId, setReplyToId] = useState<string | null>(null);
+  const [replyContent, setReplyContent] = useState('');
+  const [replyError, setReplyError] = useState<string | null>(null);
   // Honeypot field for spam protection
   const [honeypot, setHoneypot] = useState('');
 
@@ -109,6 +112,40 @@ export default function CommunityPage() {
     }
   };
 
+  const submitComment = async (message: string, parentId?: string | null) => {
+    const trimmed = message.trim();
+
+    if (!trimmed) {
+      throw new Error('Please enter a message');
+    }
+    
+    if (trimmed.length < 10) {
+      throw new Error('Message must be at least 10 characters');
+    }
+    
+    if (trimmed.length > 1000) {
+      throw new Error('Message must be under 1000 characters');
+    }
+
+    const res = await fetch('/api/comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name.trim() || 'Anonymous',
+        content: trimmed,
+        parent_id: parentId || null,
+      }),
+    });
+
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error || 'Failed to post comment');
+    }
+
+    const data = await res.json();
+    setComments(prev => [data.comment, ...prev]);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -116,50 +153,35 @@ export default function CommunityPage() {
     if (honeypot) {
       return; // Bot detected
     }
-    
-    if (!content.trim()) {
-      setError('Please enter a message');
-      return;
-    }
-    
-    if (content.length < 10) {
-      setError('Message must be at least 10 characters');
-      return;
-    }
-    
-    if (content.length > 1000) {
-      setError('Message must be under 1000 characters');
-      return;
-    }
 
     setIsSubmitting(true);
     setError(null);
 
     try {
-      const res = await fetch('/api/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim() || 'Anonymous',
-          content: content.trim(),
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to post comment');
-      }
-
-      const data = await res.json();
-      
-      // Add the new comment to the list
-      setComments([data.comment, ...comments]);
+      await submitComment(content, null);
       setName('');
       setContent('');
       setSubmitSuccess(true);
       setTimeout(() => setSubmitSuccess(false), 3000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to post comment. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReplySubmit = async (e: React.FormEvent, parentId: string) => {
+    e.preventDefault();
+
+    setIsSubmitting(true);
+    setReplyError(null);
+
+    try {
+      await submitComment(replyContent, parentId);
+      setReplyContent('');
+      setReplyToId(null);
+    } catch (err) {
+      setReplyError(err instanceof Error ? err.message : 'Failed to post reply. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -196,12 +218,155 @@ export default function CommunityPage() {
     }
   };
 
-  const sortedComments = [...comments].sort((a, b) => {
+  const topLevelComments = comments.filter(comment => !comment.parent_id);
+  const repliesByParent = comments.reduce<Record<string, Comment[]>>((acc, comment) => {
+    if (comment.parent_id) {
+      if (!acc[comment.parent_id]) {
+        acc[comment.parent_id] = [];
+      }
+      acc[comment.parent_id].push(comment);
+    }
+    return acc;
+  }, {});
+
+  Object.values(repliesByParent).forEach(list => {
+    list.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  });
+
+  const sortedTopLevel = [...topLevelComments].sort((a, b) => {
     if (sortBy === 'upvotes') {
       return b.upvotes - a.upvotes;
     }
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
+
+  const renderComment = (comment: Comment, depth: number) => {
+    const hasUpvoted = upvotedIds.has(comment.id);
+    const avatarUrl = comment.avatar_url || getAvatarUrl(comment.name + comment.id);
+    const replies = repliesByParent[comment.id] || [];
+
+    return (
+      <div key={comment.id} style={{ marginLeft: depth * 24 }}>
+        <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+              <img 
+                src={avatarUrl}
+                alt={`${comment.name}'s avatar`}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback to User icon if avatar fails
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement!.classList.add('flex', 'items-center', 'justify-center');
+                  const icon = document.createElement('div');
+                  icon.innerHTML = '<svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>';
+                  e.currentTarget.parentElement!.appendChild(icon);
+                }}
+              />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-slate-900 dark:text-white">
+                {comment.name}
+              </p>
+              <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+                <Clock className="w-3 h-3" />
+                {formatTimeAgo(comment.created_at)}
+              </div>
+            </div>
+          </div>
+          
+          <p className="text-slate-700 dark:text-slate-300 mb-4 whitespace-pre-wrap">
+            {comment.content}
+          </p>
+          
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleUpvote(comment.id)}
+              disabled={hasUpvoted}
+              className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
+                hasUpvoted 
+                  ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 cursor-default'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
+              }`}
+              title={hasUpvoted ? 'You already upvoted this' : 'Upvote this comment'}
+            >
+              <ThumbsUp className={`w-4 h-4 ${hasUpvoted ? 'fill-current' : ''}`} />
+              {comment.upvotes}
+            </button>
+            <button
+              onClick={() => {
+                setReplyToId(comment.id);
+                setReplyContent('');
+                setReplyError(null);
+              }}
+              className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg text-slate-600 dark:text-slate-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+            >
+              <MessageSquare className="w-4 h-4" />
+              Reply
+            </button>
+          </div>
+        </div>
+
+        {replyToId === comment.id && (
+          <form
+            onSubmit={(e) => handleReplySubmit(e, comment.id)}
+            className="mt-3 bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-700 rounded-xl p-4"
+          >
+            <textarea
+              value={replyContent}
+              onChange={(e) => setReplyContent(e.target.value)}
+              placeholder="Write a reply..."
+              rows={3}
+              maxLength={1000}
+              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-900 text-slate-900 dark:text-white placeholder-slate-400 focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-colors resize-none"
+            />
+            {replyError && (
+              <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-sm mt-2">
+                <AlertCircle className="w-4 h-4" />
+                {replyError}
+              </div>
+            )}
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white text-sm font-medium rounded-lg transition-colors"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Posting...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Post Reply
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setReplyToId(null);
+                  setReplyContent('');
+                  setReplyError(null);
+                }}
+                className="px-3 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
+        {replies.length > 0 && (
+          <div className="mt-3 space-y-3">
+            {replies.map(reply => renderComment(reply, depth + 1))}
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -360,7 +525,7 @@ export default function CommunityPage() {
                 </div>
               ))}
             </>
-          ) : sortedComments.length === 0 ? (
+          ) : sortedTopLevel.length === 0 ? (
             <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-8 text-center">
               <MessageSquare className="w-12 h-12 text-slate-300 dark:text-slate-600 mx-auto mb-4" />
               <p className="text-slate-600 dark:text-slate-400">
@@ -368,62 +533,7 @@ export default function CommunityPage() {
               </p>
             </div>
           ) : (
-            sortedComments.map(comment => {
-              const hasUpvoted = upvotedIds.has(comment.id);
-              const avatarUrl = comment.avatar_url || getAvatarUrl(comment.name + comment.id);
-              
-              return (
-                <div 
-                  key={comment.id}
-                  className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6"
-                >
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0">
-                      <img 
-                        src={avatarUrl}
-                        alt={`${comment.name}'s avatar`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // Fallback to User icon if avatar fails
-                          e.currentTarget.style.display = 'none';
-                          e.currentTarget.parentElement!.classList.add('flex', 'items-center', 'justify-center');
-                          const icon = document.createElement('div');
-                          icon.innerHTML = '<svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>';
-                          e.currentTarget.parentElement!.appendChild(icon);
-                        }}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-slate-900 dark:text-white">
-                        {comment.name}
-                      </p>
-                      <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                        <Clock className="w-3 h-3" />
-                        {formatTimeAgo(comment.created_at)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <p className="text-slate-700 dark:text-slate-300 mb-4 whitespace-pre-wrap">
-                    {comment.content}
-                  </p>
-                  
-                  <button
-                    onClick={() => handleUpvote(comment.id)}
-                    disabled={hasUpvoted}
-                    className={`inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-lg transition-colors ${
-                      hasUpvoted 
-                        ? 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-900/20 cursor-default'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20'
-                    }`}
-                    title={hasUpvoted ? 'You already upvoted this' : 'Upvote this comment'}
-                  >
-                    <ThumbsUp className={`w-4 h-4 ${hasUpvoted ? 'fill-current' : ''}`} />
-                    {comment.upvotes}
-                  </button>
-                </div>
-              );
-            })
+            sortedTopLevel.map(comment => renderComment(comment, 0))
           )}
         </div>
 

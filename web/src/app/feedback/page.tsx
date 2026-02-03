@@ -52,13 +52,24 @@ export default function FeedbackPage() {
     setError(null);
 
     try {
-      // In production, this would call Supabase
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Success
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: message.trim(),
+          category,
+          email: email.trim() || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to submit feedback');
+      }
+
       setSubmitted(true);
     } catch (err) {
-      setError('Failed to submit feedback. Please try again.');
+      setError(err instanceof Error ? err.message : 'Failed to submit feedback. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
