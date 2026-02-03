@@ -6,7 +6,6 @@ import {
   BarChart3, TrendingDown, Gauge, Settings, Fuel, Truck, 
   CarFront, Loader2, AlertCircle, LightbulbIcon, ArrowRight 
 } from 'lucide-react';
-import { AdSlot } from '@/components/AdSlot';
 import { DepreciationChart } from '@/components/charts/DepreciationChart';
 import { MileageImpactChart } from '@/components/charts/MileageImpactChart';
 import { ManufacturerChart } from '@/components/charts/ManufacturerChart';
@@ -113,9 +112,6 @@ export default function InsightsPage() {
       </section>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Top Ad */}
-        <AdSlot position="header" className="mb-8" />
-
         {/* Key Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
           <StatCard
@@ -200,9 +196,6 @@ export default function InsightsPage() {
               </ChartCard>
             )}
 
-            {/* In-content Ad */}
-            <AdSlot position="in-content" />
-
             {/* Mileage Impact */}
             {insights.price_by_mileage && (
               <ChartCard
@@ -228,9 +221,6 @@ export default function InsightsPage() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Sidebar Ad */}
-            <AdSlot position="sidebar" />
-
             {/* Transmission Impact */}
             {insights.price_by_transmission && (
               <DataCard

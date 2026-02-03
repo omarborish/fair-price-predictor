@@ -5,7 +5,6 @@ import {
   Database, Cpu, BarChart3, Target, Sparkles, Shield,
   CheckCircle, ArrowRight, Brain, Layers, Loader2
 } from 'lucide-react';
-import { AdSlot } from '@/components/AdSlot';
 import Link from 'next/link';
 
 interface Metrics {
@@ -64,9 +63,6 @@ export default function MethodologyPage() {
       </section>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Top Ad */}
-        <AdSlot position="header" className="mb-12" />
-
         {/* Live Metrics Banner */}
         {metrics && (
           <div className="mb-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-6 text-white">
@@ -144,9 +140,6 @@ export default function MethodologyPage() {
             color="from-green-500 to-green-600"
           />
         </div>
-
-        {/* In-content Ad */}
-        <AdSlot position="in-content" className="mb-12" />
 
         {/* Detailed Metrics Section */}
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8 mb-12">

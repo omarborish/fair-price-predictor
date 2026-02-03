@@ -8,7 +8,6 @@ import {
 } from 'lucide-react';
 import { PredictorForm } from '@/components/PredictorForm';
 import { PredictionResult } from '@/components/PredictionResult';
-import { AdSlot } from '@/components/AdSlot';
 import { CarDetails, PredictionResponse, predictPrice } from '@/lib/api';
 
 export default function HomePage() {
@@ -60,11 +59,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Subtle Header Ad */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
-        <AdSlot position="header" />
-      </div>
-
       {/* Price Predictor Form - Centered, Clean */}
       <section className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 p-6 sm:p-8">
@@ -99,11 +93,6 @@ export default function HomePage() {
           <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
             <PredictionResult result={result} carDetails={carDetails} />
           </section>
-
-          {/* In-Content Ad After Results */}
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
-            <AdSlot position="in-content" />
-          </div>
         </div>
       )}
 
@@ -281,8 +270,6 @@ export default function HomePage() {
             </Link>
           </div>
 
-          {/* In-content ad before footer */}
-          <AdSlot position="in-content" />
         </div>
       </section>
 

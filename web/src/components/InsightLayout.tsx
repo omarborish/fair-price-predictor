@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import { ArrowLeft, TrendingUp, BarChart3, Gauge, Fuel, Settings } from 'lucide-react';
-import { AdSlot } from './AdSlot';
 
 interface InsightLayoutProps {
   title: string;
@@ -42,8 +41,6 @@ export function InsightLayout({ title, description, children, icon }: InsightLay
       </section>
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <AdSlot position="header" className="mb-8" />
-
         {/* Main Content */}
         <article className="prose prose-slate dark:prose-invert max-w-none">
           {children}
@@ -63,8 +60,6 @@ export function InsightLayout({ title, description, children, icon }: InsightLay
             <ArrowLeft className="w-4 h-4 rotate-180" />
           </Link>
         </div>
-
-        <AdSlot position="in-content" className="my-8" />
 
         {/* Related Insights */}
         <div className="mt-12">

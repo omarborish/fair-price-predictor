@@ -2,7 +2,6 @@ import {
   Mail, Phone, Github, Linkedin, Facebook, Instagram,
   ExternalLink, Database, User, Heart
 } from 'lucide-react';
-import { AdSlot } from '@/components/AdSlot';
 import Link from 'next/link';
 
 const socialLinks = [
@@ -80,9 +79,6 @@ export default function ContactPage() {
       </section>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Top Ad */}
-        <AdSlot position="header" className="mb-8" />
-
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Contact Information */}
           <div className="space-y-6">
@@ -226,9 +222,6 @@ export default function ContactPage() {
             </div>
           </div>
         </div>
-
-        {/* In-content Ad */}
-        <AdSlot position="in-content" className="mt-8" />
       </div>
     </div>
   );
