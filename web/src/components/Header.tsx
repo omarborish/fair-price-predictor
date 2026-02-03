@@ -3,15 +3,16 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Car, BarChart3, BookOpen, Menu, X, Sun, Moon, Shield, User } from 'lucide-react';
+import { Car, BarChart3, BookOpen, Menu, X, Sun, Moon, Shield, User, Brain, MessageSquare, Info } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
   { href: '/', label: 'Price Predictor', icon: Car },
-  { href: '/insights', label: 'Market Insights', icon: BarChart3 },
-  { href: '/methodology', label: 'How It Works', icon: BookOpen },
-  { href: '/contact', label: 'Contact', icon: User },
+  { href: '/about', label: 'About', icon: Info },
+  { href: '/model', label: 'Model', icon: Brain },
+  { href: '/insights', label: 'Insights', icon: BarChart3 },
+  { href: '/community', label: 'Community', icon: MessageSquare },
 ];
 
 export function Header() {
@@ -106,6 +107,14 @@ export function Header() {
                   <span>{label}</span>
                 </Link>
               ))}
+              <Link
+                href="/analytics"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                <BarChart3 className="w-5 h-5" />
+                <span>Analytics</span>
+              </Link>
               <Link
                 href="/privacy"
                 onClick={() => setMobileMenuOpen(false)}

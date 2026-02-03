@@ -46,15 +46,25 @@ export default function HomePage() {
             Find the Fair Price for Any Used Car
           </h1>
           
-          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-8">
+          <p className="text-lg text-slate-600 dark:text-slate-400 max-w-2xl mx-auto mb-6">
             Get an instant, data-driven price estimate based on real market listings. 
             Know what a car is worth before you buy or sell.
           </p>
 
+          {/* Free & Easy Emphasis */}
+          <div className="inline-flex items-center gap-3 px-5 py-2.5 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-full mb-6">
+            <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <span className="text-green-700 dark:text-green-400 font-medium">
+              Free. No login. No subscription.
+            </span>
+          </div>
+
           {/* Trust Signal - Subtle and Credible */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-full text-sm text-slate-600 dark:text-slate-300">
-            <Database className="w-4 h-4 text-blue-500" />
-            Trained on 300,000+ real vehicle listings
+          <div className="flex justify-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 rounded-full text-sm text-slate-600 dark:text-slate-300">
+              <Database className="w-4 h-4 text-blue-500" />
+              Trained on 300,000+ real vehicle listings
+            </div>
           </div>
         </div>
       </section>
@@ -67,7 +77,7 @@ export default function HomePage() {
               Enter Your Car Details
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              We'll analyze current market data to estimate fair value
+              I built this to stay simple: choose a car, get a price estimate.
             </p>
           </div>
 
@@ -101,10 +111,10 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-10">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
-              How We Calculate Fair Prices
+              How I Calculate Fair Prices
             </h2>
             <p className="text-slate-600 dark:text-slate-400">
-              Our estimates are based on real market data, not guesses
+              My estimates are based on real market data, not guesses
             </p>
           </div>
 
@@ -117,7 +127,7 @@ export default function HomePage() {
                 Real Market Data
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                We analyze hundreds of thousands of actual vehicle listings to understand 
+                I analyzed hundreds of thousands of actual vehicle listings to understand 
                 what cars are really selling for.
               </p>
             </div>
@@ -131,7 +141,7 @@ export default function HomePage() {
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-400">
                 Mileage, age, condition, make, model, and configuration all affect price. 
-                Our model weighs each factor appropriately.
+                My model weighs each factor appropriately.
               </p>
             </div>
 
@@ -159,7 +169,7 @@ export default function HomePage() {
               Why Estimates Can Vary
             </h3>
             <p className="text-slate-600 dark:text-slate-400 mb-4">
-              Our price estimates are based on historical market data and provide a strong starting point 
+              My price estimates are based on historical market data and provide a strong starting point 
               for understanding a vehicle's value. However, final sale prices can differ due to:
             </p>
             <ul className="space-y-2 text-sm text-slate-600 dark:text-slate-400">

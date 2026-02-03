@@ -65,13 +65,13 @@ export default function ContactPage() {
           <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full text-sm font-medium mb-6">
               <User className="w-4 h-4" />
-              About the Developer
+              Contact
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold mb-4">
-              Built by Engineer Omar Borish
+              Get in Touch
             </h1>
             <p className="text-lg text-indigo-100">
-              Full-stack developer & ML engineer passionate about building 
+              I'm Omar Borish—a developer passionate about building 
               data-driven applications that solve real-world problems.
             </p>
           </div>
@@ -211,12 +211,16 @@ export default function ContactPage() {
               </h2>
               <div className="prose prose-slate dark:prose-invert text-sm">
                 <p className="text-slate-600 dark:text-slate-400">
-                  Fair Price Predictor is a machine learning-powered web application that 
-                  helps users estimate fair market values for used cars. The model is trained 
+                  Fair Price Predictor is a machine learning-powered web application I built to 
+                  help people estimate fair market values for used cars. The model is trained 
                   on real listing data and uses gradient boosting techniques for accurate predictions.
                 </p>
                 <p className="text-slate-600 dark:text-slate-400 mt-3">
                   <strong>Tech Stack:</strong> Next.js, FastAPI, scikit-learn, TailwindCSS, Recharts
+                </p>
+                <p className="text-slate-600 dark:text-slate-400 mt-3">
+                  I'm pursuing roles in AI/ML and built this project to demonstrate real skills 
+                  while creating something genuinely useful.
                 </p>
               </div>
             </div>

@@ -47,17 +47,22 @@ export function Footer() {
               </div>
               <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md">
                 Get accurate, data-driven fair market price estimates for any used car. 
-                Our AI analyzes millions of listings to help you make informed buying and selling decisions.
+                I built this tool to help people make informed buying and selling decisions.
               </p>
               
+              {/* Free Tool Badge */}
+              <div className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 bg-green-100 dark:bg-green-900/30 rounded-full text-sm text-green-700 dark:text-green-400">
+                Free tool — supported by ads
+              </div>
+              
               {/* Built By */}
-              <div className="mt-4 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+              <div className="mt-3 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
                 <span>Built by</span>
                 <Link 
-                  href="/contact" 
+                  href="/about" 
                   className="font-semibold text-green-600 dark:text-green-400 hover:underline"
                 >
-                  Engineer Omar Borish
+                  Omar Borish
                 </Link>
               </div>
               
@@ -82,29 +87,49 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/about" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/model" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    Model & Accuracy
+                  </Link>
+                </li>
+                <li>
                   <Link href="/insights" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                     Market Insights
                   </Link>
                 </li>
                 <li>
-                  <Link href="/methodology" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                    How It Works
+                  <Link href="/community" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    Community
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                    Contact / Credits
+                  <Link href="/analytics" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    Analytics
                   </Link>
                 </li>
               </ul>
             </div>
 
-            {/* Legal */}
+            {/* Support & Legal */}
             <div>
               <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-                Legal
+                Support & Legal
               </h4>
               <ul className="space-y-2">
+                <li>
+                  <Link href="/feedback" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    Send Feedback
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/contact" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    Contact
+                  </Link>
+                </li>
                 <li>
                   <Link href="/privacy" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                     Privacy Policy
@@ -113,11 +138,6 @@ export function Footer() {
                 <li>
                   <Link href="/privacy#terms" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                     Terms of Service
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy#cookies" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                    Cookie Policy
                   </Link>
                 </li>
               </ul>
@@ -131,8 +151,8 @@ export function Footer() {
               <span className="hidden sm:inline">|</span>
               <span>
                 Built by{' '}
-                <Link href="/contact" className="text-green-600 dark:text-green-400 hover:underline font-medium">
-                  Engineer Omar Borish
+                <Link href="/about" className="text-green-600 dark:text-green-400 hover:underline font-medium">
+                  Omar Borish
                 </Link>
               </span>
             </div>

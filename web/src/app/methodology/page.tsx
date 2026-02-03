@@ -49,13 +49,13 @@ export default function MethodologyPage() {
           <div className="text-center max-w-3xl mx-auto">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full text-sm font-medium mb-6">
               <Brain className="w-4 h-4" />
-              Our Methodology
+              My Methodology
             </div>
             <h1 className="text-4xl sm:text-5xl font-bold mb-4">
-              How We Calculate Fair Prices
+              How I Calculate Fair Prices
             </h1>
             <p className="text-lg text-purple-100">
-              Understand the data science and machine learning behind our accurate 
+              Understand the data science and machine learning behind my 
               used car price predictions.
             </p>
           </div>
@@ -68,7 +68,7 @@ export default function MethodologyPage() {
           <div className="mb-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl p-6 text-white">
             <div className="text-center mb-4">
               <h2 className="text-2xl font-bold">Current Model Performance</h2>
-              <p className="text-green-100">Real metrics from our trained model</p>
+              <p className="text-green-100">Real metrics from my trained model</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white/10 backdrop-blur rounded-xl p-4 text-center">
@@ -93,7 +93,7 @@ export default function MethodologyPage() {
 
         {/* 6-Step Process Cards */}
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center">
-          Our 6-Step Process
+          My 6-Step Process
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
@@ -101,28 +101,28 @@ export default function MethodologyPage() {
             number={1}
             icon={<Database className="w-6 h-6" />}
             title="Data Collection"
-            description="We source hundreds of thousands of real used car listings from across the United States, ensuring comprehensive market coverage."
+            description="I sourced hundreds of thousands of real used car listings from across the United States, ensuring comprehensive market coverage."
             color="from-blue-500 to-blue-600"
           />
           <StepCard
             number={2}
             icon={<Layers className="w-6 h-6" />}
             title="Data Cleaning"
-            description="We remove outliers, handle missing values, and filter unrealistic prices to ensure only quality data trains our model."
+            description="I removed outliers, handled missing values, and filtered unrealistic prices to ensure only quality data trains my model."
             color="from-indigo-500 to-indigo-600"
           />
           <StepCard
             number={3}
             icon={<Cpu className="w-6 h-6" />}
             title="Feature Engineering"
-            description="We transform raw data into meaningful features: vehicle age, log-scaled mileage, make/model encoding, and more."
+            description="I transformed raw data into meaningful features: vehicle age, log-scaled mileage, make/model encoding, and more."
             color="from-purple-500 to-purple-600"
           />
           <StepCard
             number={4}
             icon={<Brain className="w-6 h-6" />}
             title="Model Training"
-            description={metrics ? `Using ${metrics.model_type.replace('histgb', 'HistGradientBoosting').replace('catboost', 'CatBoost')} on ${metrics.training_samples.toLocaleString()} samples for accurate predictions.` : "Advanced gradient boosting algorithms trained on hundreds of thousands of listings."}
+            description={metrics ? `I trained ${metrics.model_type.replace('histgb', 'HistGradientBoosting').replace('catboost', 'CatBoost').replace('blend', 'a blended model')} on ${metrics.training_samples.toLocaleString()} samples for accurate predictions.` : "I trained advanced gradient boosting algorithms on hundreds of thousands of listings."}
             color="from-pink-500 to-pink-600"
           />
           <StepCard
@@ -191,7 +191,7 @@ export default function MethodologyPage() {
                     <div>
                       <h4 className="font-semibold text-slate-900 dark:text-white">Prediction Interval Coverage</h4>
                       <p className="text-sm text-slate-600 dark:text-slate-400">
-                        {formatPercent(metrics.interval_coverage)} of actual prices fall within our p10-p90 range
+                        {formatPercent(metrics.interval_coverage)} of actual prices fall within my p10-p90 range
                       </p>
                     </div>
                     <div className="text-4xl font-bold text-green-600 dark:text-green-400">
@@ -236,9 +236,9 @@ export default function MethodologyPage() {
                 Important Disclaimer
               </h3>
               <p className="text-sm text-amber-800 dark:text-amber-200">
-                Our price predictions are estimates based on historical data and statistical 
+                My price predictions are estimates based on historical data and statistical 
                 modeling. Actual market prices can vary significantly based on factors not 
-                captured in our model, including local market conditions, vehicle history, 
+                captured in the model, including local market conditions, vehicle history, 
                 negotiation, and current economic factors. Always conduct your own research 
                 and consider getting a professional appraisal for significant transactions.
               </p>
