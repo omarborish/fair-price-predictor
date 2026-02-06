@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "routes": [
+    {
+      "src": "/((?!api/).*)",
+      "transforms": [
+        {
+          "type": "response.headers",
+          "op": "delete",
+          "target": {
+            "key": "Access-Control-Allow-Origin"
+          }
+        }
+      ]
+    }
+  ]
+}
