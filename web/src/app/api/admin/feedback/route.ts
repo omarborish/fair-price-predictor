@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, isSupabaseAdminConfigured } from '@/lib/supabase-admin';
+import { withCors, corsPreflight } from '@/lib/cors';
 
 const ADMIN_SECRET = process.env.ADMIN_SECRET_KEY;
+
+export async function OPTIONS(request: NextRequest) {
+  return corsPreflight(request);
+}
 
 /**
  * Verify admin authentication
@@ -22,11 +27,11 @@ function verifyAdmin(request: NextRequest): boolean {
  */
 export async function GET(request: NextRequest) {
   if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return withCors(request, NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
   }
 
   if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
-    return NextResponse.json({ error: 'Supabase admin is not configured' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Supabase admin is not configured' }, { status: 500 }));
   }
 
   try {
@@ -45,12 +50,12 @@ export async function GET(request: NextRequest) {
     const { data, error } = await query;
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return withCors(request, NextResponse.json({ error: error.message }, { status: 500 }));
     }
 
-    return NextResponse.json({ feedback: data });
+    return withCors(request, NextResponse.json({ feedback: data }));
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch feedback' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Failed to fetch feedback' }, { status: 500 }));
   }
 }
 
@@ -60,11 +65,11 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return withCors(request, NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
   }
 
   if (!isSupabaseAdminConfigured() || !supabaseAdmin) {
-    return NextResponse.json({ error: 'Supabase admin is not configured' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Supabase admin is not configured' }, { status: 500 }));
   }
 
   try {
@@ -72,7 +77,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Feedback ID required' }, { status: 400 });
+      return withCors(request, NextResponse.json({ error: 'Feedback ID required' }, { status: 400 }));
     }
 
     const { error } = await supabaseAdmin
@@ -81,11 +86,11 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return withCors(request, NextResponse.json({ error: error.message }, { status: 500 }));
     }
 
-    return NextResponse.json({ message: 'Feedback deleted' });
+    return withCors(request, NextResponse.json({ message: 'Feedback deleted' }));
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete feedback' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Failed to delete feedback' }, { status: 500 }));
   }
 }

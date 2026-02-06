@@ -61,6 +61,28 @@ const nextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
           },
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin',
+          },
+          // Optional defense-in-depth: same-origin allows our origin; third-party embeds (AdSense, Umami) load their own resources
+          {
+            key: 'Cross-Origin-Resource-Policy',
+            value: 'same-origin',
+          },
+          // CSP Report-Only: safe baseline for AdSense + Umami; enforce later after monitoring reports
+          {
+            key: 'Content-Security-Policy-Report-Only',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://cloud.umami.is https://*.umami.is",
+              "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+              "font-src 'self' https://fonts.gstatic.com",
+              "img-src 'self' data: https: http:",
+              "connect-src 'self' https://*.supabase.co https://cloud.umami.is https://*.umami.is",
+              "frame-src https://googleads.g.doubleclick.net",
+            ].join('; '),
+          },
         ],
       },
     ];

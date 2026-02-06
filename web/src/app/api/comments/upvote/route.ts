@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { withCors, corsPreflight } from '@/lib/cors';
+
+export async function OPTIONS(request: NextRequest) {
+  return corsPreflight(request);
+}
 
 // POST - Upvote a comment
 export async function POST(request: NextRequest) {
   // Check if Supabase is configured
   if (!isSupabaseConfigured()) {
     // Just return success for sample data (upvotes won't persist)
-    return NextResponse.json({ success: true, message: 'Upvote recorded locally' });
+    return withCors(request, NextResponse.json({ success: true, message: 'Upvote recorded locally' }));
   }
 
   try {
@@ -14,7 +19,7 @@ export async function POST(request: NextRequest) {
     const { id } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Comment ID is required' }, { status: 400 });
+      return withCors(request, NextResponse.json({ error: 'Comment ID is required' }, { status: 400 }));
     }
 
     // Try to use the RPC function if available, otherwise do direct update
@@ -30,7 +35,7 @@ export async function POST(request: NextRequest) {
 
       if (fetchError) {
         console.error('Error fetching comment:', fetchError);
-        return NextResponse.json({ error: 'Comment not found' }, { status: 404 });
+        return withCors(request, NextResponse.json({ error: 'Comment not found' }, { status: 404 }));
       }
 
       const { error: updateError } = await supabase
@@ -40,13 +45,13 @@ export async function POST(request: NextRequest) {
 
       if (updateError) {
         console.error('Error updating upvotes:', updateError);
-        return NextResponse.json({ error: 'Failed to upvote' }, { status: 500 });
+        return withCors(request, NextResponse.json({ error: 'Failed to upvote' }, { status: 500 }));
       }
     }
 
-    return NextResponse.json({ success: true });
+    return withCors(request, NextResponse.json({ success: true }));
   } catch (err) {
     console.error('Error upvoting comment:', err);
-    return NextResponse.json({ error: 'Failed to upvote' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Failed to upvote' }, { status: 500 }));
   }
 }

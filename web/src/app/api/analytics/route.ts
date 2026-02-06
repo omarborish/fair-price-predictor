@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
+import { withCors, corsPreflight } from '@/lib/cors';
 
 // Analytics data - manually updated periodically from Umami dashboard
 // Real-time stats always available at the public Umami dashboard link
@@ -15,11 +16,15 @@ const analyticsData = [
 // Update this date when you manually update the data above
 const LAST_UPDATED = '2026-01-30';
 
-export async function GET() {
-  return NextResponse.json({
+export async function OPTIONS(request: NextRequest) {
+  return corsPreflight(request);
+}
+
+export async function GET(request: NextRequest) {
+  return withCors(request, NextResponse.json({
     data: analyticsData,
     source: 'manual',
     lastUpdated: LAST_UPDATED,
     note: 'Summary data updated periodically. Click the live dashboard link for real-time stats.',
-  });
+  }));
 }

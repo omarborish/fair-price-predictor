@@ -3,6 +3,10 @@ import {
   ExternalLink, Database, User, Heart
 } from 'lucide-react';
 import Link from 'next/link';
+import { ObfuscatedEmailLink } from '@/components/ObfuscatedEmailLink';
+
+// Obfuscated so crawlers don't see plain address in HTML (decoded client-side for mailto)
+const PRIMARY_EMAIL_ENCODED = 'b21hcmJvcmlzaDIwMDRAZ21haWwuY29t';
 
 const socialLinks = [
   {
@@ -47,13 +51,6 @@ const profileLinks = [
     url: 'https://app.joinhandshake.com/profiles/w4t79h',
     description: 'Career Profile'
   },
-];
-
-const emails = [
-  'omarborish2004@gmail.com',
-  'omarborish2004@yahoo.com',
-  'okborish@uab.edu',
-  'omar.1800653.ai22@fcai.usc.edu.eg',
 ];
 
 export default function ContactPage() {
@@ -104,27 +101,28 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* Email Contact */}
+            {/* Email Contact - primary address obfuscated; no plain emails in HTML for crawlers */}
             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                 <Mail className="w-5 h-5 text-blue-500" />
-                Email Addresses
+                Email
               </h2>
               <div className="space-y-3">
-                {emails.map((email) => (
-                  <a
-                    key={email}
-                    href={`mailto:${email}`}
-                    className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group"
-                  >
-                    <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                      <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <span className="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                      {email}
-                    </span>
-                  </a>
-                ))}
+                <ObfuscatedEmailLink
+                  encoded={PRIMARY_EMAIL_ENCODED}
+                  className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors group"
+                  ariaLabel="Send email to primary contact"
+                >
+                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                    <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <span className="text-slate-700 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    Primary contact
+                  </span>
+                </ObfuscatedEmailLink>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
+                  For other inquiries or quick feedback, use the <Link href="/feedback" className="text-green-600 dark:text-green-400 hover:underline">Feedback form</Link> or message me on <a href="https://www.linkedin.com/in/omar-borish-9a75a1249/" target="_blank" rel="noopener noreferrer" className="text-green-600 dark:text-green-400 hover:underline">LinkedIn</a>.
+                </p>
               </div>
             </div>
 

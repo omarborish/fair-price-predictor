@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { withCors, corsPreflight } from '@/lib/cors';
+
+export async function OPTIONS(request: NextRequest) {
+  return corsPreflight(request);
+}
 
 /**
  * Verify admin authentication
@@ -28,12 +33,12 @@ function verifyAdmin(request: NextRequest): boolean {
 export async function GET(request: NextRequest) {
   try {
     if (!verifyAdmin(request)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return withCors(request, NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
     }
 
     // If Supabase isn't configured, return sample data for admin testing
     if (!isSupabaseConfigured()) {
-      return NextResponse.json({ 
+      return withCors(request, NextResponse.json({ 
         comments: [
           {
             id: 'sample-1',
@@ -45,7 +50,7 @@ export async function GET(request: NextRequest) {
           }
         ],
         note: 'Supabase not configured - showing sample data'
-      });
+      }));
     }
 
     const { data, error } = await supabase
@@ -55,13 +60,13 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return withCors(request, NextResponse.json({ error: error.message }, { status: 500 }));
     }
 
-    return NextResponse.json({ comments: data || [] });
+    return withCors(request, NextResponse.json({ comments: data || [] }));
   } catch (error) {
     console.error('Admin comments GET error:', error);
-    return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 }));
   }
 }
 
@@ -71,7 +76,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return withCors(request, NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
   }
 
   try {
@@ -79,7 +84,7 @@ export async function PATCH(request: NextRequest) {
     const { id, is_hidden } = body;
 
     if (!id || typeof is_hidden !== 'boolean') {
-      return NextResponse.json({ error: 'Invalid request body' }, { status: 400 });
+      return withCors(request, NextResponse.json({ error: 'Invalid request body' }, { status: 400 }));
     }
 
     const { data, error } = await supabase
@@ -90,12 +95,12 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return withCors(request, NextResponse.json({ error: error.message }, { status: 500 }));
     }
 
-    return NextResponse.json({ comment: data, message: is_hidden ? 'Comment hidden' : 'Comment visible' });
+    return withCors(request, NextResponse.json({ comment: data, message: is_hidden ? 'Comment hidden' : 'Comment visible' }));
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to update comment' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Failed to update comment' }, { status: 500 }));
   }
 }
 
@@ -105,7 +110,7 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return withCors(request, NextResponse.json({ error: 'Unauthorized' }, { status: 401 }));
   }
 
   try {
@@ -113,7 +118,7 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get('id');
 
     if (!id) {
-      return NextResponse.json({ error: 'Comment ID required' }, { status: 400 });
+      return withCors(request, NextResponse.json({ error: 'Comment ID required' }, { status: 400 }));
     }
 
     const { error } = await supabase
@@ -122,11 +127,11 @@ export async function DELETE(request: NextRequest) {
       .eq('id', id);
 
     if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      return withCors(request, NextResponse.json({ error: error.message }, { status: 500 }));
     }
 
-    return NextResponse.json({ message: 'Comment deleted' });
+    return withCors(request, NextResponse.json({ message: 'Comment deleted' }));
   } catch (error) {
-    return NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Failed to delete comment' }, { status: 500 }));
   }
 }

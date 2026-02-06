@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, isSupabaseConfigured } from '@/lib/supabase';
+import { withCors, corsPreflight } from '@/lib/cors';
+
+export async function OPTIONS(request: NextRequest) {
+  return corsPreflight(request);
+}
 
 // GET - Fetch all visible comments
-export async function GET() {
+export async function GET(request: NextRequest) {
   // Check if Supabase is configured
   if (!isSupabaseConfigured()) {
     // Return sample comments if Supabase isn't set up
-    return NextResponse.json({
+    const res = NextResponse.json({
       comments: [
         {
           id: '1',
@@ -35,6 +40,7 @@ export async function GET() {
       ],
       source: 'sample',
     });
+    return withCors(request, res);
   }
 
   try {
@@ -46,13 +52,13 @@ export async function GET() {
 
     if (error) {
       console.error('Supabase error:', error);
-      return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
+      return withCors(request, NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 }));
     }
 
-    return NextResponse.json({ comments: data || [], source: 'supabase' });
+    return withCors(request, NextResponse.json({ comments: data || [], source: 'supabase' }));
   } catch (err) {
     console.error('Error fetching comments:', err);
-    return NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Failed to fetch comments' }, { status: 500 }));
   }
 }
 
@@ -60,10 +66,10 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   // Check if Supabase is configured
   if (!isSupabaseConfigured()) {
-    return NextResponse.json(
+    return withCors(request, NextResponse.json(
       { error: 'Comments are currently unavailable. Please try again later.' },
       { status: 503 }
-    );
+    ));
   }
 
   try {
@@ -72,16 +78,16 @@ export async function POST(request: NextRequest) {
 
     // Validation
     if (!content || typeof content !== 'string') {
-      return NextResponse.json({ error: 'Content is required' }, { status: 400 });
+      return withCors(request, NextResponse.json({ error: 'Content is required' }, { status: 400 }));
     }
 
     const trimmedContent = content.trim();
     if (trimmedContent.length < 10) {
-      return NextResponse.json({ error: 'Message must be at least 10 characters' }, { status: 400 });
+      return withCors(request, NextResponse.json({ error: 'Message must be at least 10 characters' }, { status: 400 }));
     }
 
     if (trimmedContent.length > 1000) {
-      return NextResponse.json({ error: 'Message must be under 1000 characters' }, { status: 400 });
+      return withCors(request, NextResponse.json({ error: 'Message must be under 1000 characters' }, { status: 400 }));
     }
 
     const trimmedName = (name || 'Anonymous').trim().slice(0, 50);
@@ -103,12 +109,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error('Supabase error:', error);
-      return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
+      return withCors(request, NextResponse.json({ error: 'Failed to create comment' }, { status: 500 }));
     }
 
-    return NextResponse.json({ comment: data, success: true });
+    return withCors(request, NextResponse.json({ comment: data, success: true }));
   } catch (err) {
     console.error('Error creating comment:', err);
-    return NextResponse.json({ error: 'Failed to create comment' }, { status: 500 });
+    return withCors(request, NextResponse.json({ error: 'Failed to create comment' }, { status: 500 }));
   }
 }

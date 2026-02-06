@@ -1,5 +1,9 @@
 import Link from 'next/link';
 import { Car, Github, Mail, Linkedin, Facebook, Instagram } from 'lucide-react';
+import { ObfuscatedEmailLink } from '@/components/ObfuscatedEmailLink';
+
+// Obfuscated so crawlers don't see plain address in HTML (decoded client-side for mailto)
+const PRIMARY_EMAIL_ENCODED = 'b21hcmJvcmlzaDIwMDRAZ21haWwuY29t';
 
 const socialLinks = [
   {
@@ -169,13 +173,13 @@ export function Footer() {
                   <link.icon className="w-5 h-5" />
                 </a>
               ))}
-              <a
-                href="mailto:omarborish2004@gmail.com"
+              <ObfuscatedEmailLink
+                encoded={PRIMARY_EMAIL_ENCODED}
                 className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                aria-label="Email"
+                ariaLabel="Email"
               >
                 <Mail className="w-5 h-5" />
-              </a>
+              </ObfuscatedEmailLink>
             </div>
           </div>
         </div>
