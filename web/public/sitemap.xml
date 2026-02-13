@@ -1,61 +1,97 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://fairpricepredictor.com/</loc>
+    <loc>https://fair-price-predictor.vercel.app/</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/insights</loc>
+    <loc>https://fair-price-predictor.vercel.app/about</loc>
+    <lastmod>2026-01-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://fair-price-predictor.vercel.app/model</loc>
+    <lastmod>2026-01-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://fair-price-predictor.vercel.app/methodology</loc>
+    <lastmod>2026-01-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://fair-price-predictor.vercel.app/insights</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/insights/mileage-impact</loc>
+    <loc>https://fair-price-predictor.vercel.app/insights/mileage-impact</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/insights/depreciation-by-year</loc>
+    <loc>https://fair-price-predictor.vercel.app/insights/depreciation-by-year</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/insights/price-distribution</loc>
+    <loc>https://fair-price-predictor.vercel.app/insights/price-distribution</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/insights/drivetrain-premium</loc>
+    <loc>https://fair-price-predictor.vercel.app/insights/drivetrain-premium</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/insights/fuel-type-comparison</loc>
+    <loc>https://fair-price-predictor.vercel.app/insights/fuel-type-comparison</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/methodology</loc>
+    <loc>https://fair-price-predictor.vercel.app/community</loc>
+    <lastmod>2026-01-31</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://fair-price-predictor.vercel.app/analytics</loc>
+    <lastmod>2026-01-31</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://fair-price-predictor.vercel.app/compare</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/contact</loc>
+    <loc>https://fair-price-predictor.vercel.app/feedback</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://fairpricepredictor.com/privacy</loc>
+    <loc>https://fair-price-predictor.vercel.app/contact</loc>
+    <lastmod>2026-01-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://fair-price-predictor.vercel.app/privacy</loc>
     <lastmod>2026-01-31</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>

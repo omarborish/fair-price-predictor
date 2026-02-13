@@ -1,9 +1,19 @@
+import type { Metadata } from 'next';
 import { 
   Mail, Phone, Github, Linkedin, Facebook, Instagram,
   ExternalLink, Database, User, Heart
 } from 'lucide-react';
 import Link from 'next/link';
 import { ObfuscatedEmailLink } from '@/components/ObfuscatedEmailLink';
+
+export const metadata: Metadata = {
+  title: 'Contact | Fair Price Used Car Predictor',
+  description: 'Get in touch with Omar Borish — developer of Fair Price Predictor. Find social links, professional profiles, and project information.',
+  openGraph: {
+    title: 'Contact — Fair Price Predictor',
+    description: 'Reach out via LinkedIn, GitHub, or email. Built by Omar Borish.',
+  },
+};
 
 // Obfuscated so crawlers don't see plain address in HTML (decoded client-side for mailto)
 const PRIMARY_EMAIL_ENCODED = 'b21hcmJvcmlzaDIwMDRAZ21haWwuY29t';

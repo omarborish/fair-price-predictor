@@ -1,4 +1,14 @@
+import type { Metadata } from 'next';
 import { Shield, Lock, Cookie, Mail, AlertCircle } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'Privacy Policy | Fair Price Used Car Predictor',
+  description: 'Read our Privacy Policy, Cookie Policy, and Terms of Service. We do not store personal information — vehicle details are processed in real-time only.',
+  openGraph: {
+    title: 'Privacy Policy — Fair Price Predictor',
+    description: 'How we handle your data: no accounts, no stored personal info, transparent cookie and ad policies.',
+  },
+};
 
 export default function PrivacyPage() {
   return (
@@ -214,12 +224,7 @@ export default function PrivacyPage() {
             </p>
             <div className="space-y-2">
               <p className="text-slate-600 dark:text-slate-400">
-                <a href="mailto:omarborish2004@gmail.com" className="text-blue-600 hover:underline">
-                  omarborish2004@gmail.com
-                </a>
-              </p>
-              <p className="text-slate-600 dark:text-slate-400">
-                Or visit our <a href="/contact" className="text-blue-600 hover:underline">Contact page</a> for more ways to reach us.
+                Visit our <a href="/contact" className="text-blue-600 hover:underline">Contact page</a> for ways to reach us.
               </p>
             </div>
           </section>

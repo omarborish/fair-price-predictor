@@ -96,6 +96,11 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/methodology" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    How It Works
+                  </Link>
+                </li>
+                <li>
                   <Link href="/model" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                     Model & Accuracy
                   </Link>

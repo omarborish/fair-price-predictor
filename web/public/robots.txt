@@ -7,5 +7,8 @@ Allow: /
 # Disallow API routes
 Disallow: /api/
 
-# Sitemap location (update with your actual domain)
-Sitemap: https://fairpricepredictor.com/sitemap.xml
+# Disallow admin
+Disallow: /admin
+
+# Sitemap location
+Sitemap: https://fair-price-predictor.vercel.app/sitemap.xml

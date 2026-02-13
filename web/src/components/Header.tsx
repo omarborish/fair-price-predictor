@@ -10,11 +10,10 @@ import { cn } from '@/lib/utils';
 const navLinks = [
   { href: '/', label: 'Price Predictor', icon: Car },
   { href: '/about', label: 'About', icon: Info },
+  { href: '/methodology', label: 'How It Works', icon: BookOpen },
   { href: '/model', label: 'Model', icon: Brain },
   { href: '/insights', label: 'Insights', icon: BarChart3 },
-  { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/community', label: 'Community', icon: MessageSquare },
-  { href: '/feedback', label: 'Feedback', icon: Send },
   { href: '/contact', label: 'Contact', icon: Mail },
 ];
 

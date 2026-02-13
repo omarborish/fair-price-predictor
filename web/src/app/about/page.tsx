@@ -1,11 +1,19 @@
-'use client';
-
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { 
   Heart, Target, Lightbulb, DollarSign, Lock, 
   Sparkles, MessageSquare, ArrowRight, CheckCircle2,
   Bot, AlertCircle
 } from 'lucide-react';
+
+export const metadata: Metadata = {
+  title: 'About | Fair Price Used Car Predictor',
+  description: 'Learn why I built Fair Price Predictor — a free, AI-powered used car price estimator that helps buyers and sellers make confident decisions.',
+  openGraph: {
+    title: 'About Fair Price Predictor',
+    description: 'A free tool to estimate fair market values for used cars, built by Omar Borish.',
+  },
+};
 
 export default function AboutPage() {
   return (
