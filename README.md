@@ -24,8 +24,31 @@ A production-ready, AI-powered web application that predicts fair market prices 
 | Frontend | Next.js 14 (App Router), TypeScript, TailwindCSS |
 | Charts | Recharts |
 | Backend | FastAPI (Python) |
-| ML | scikit-learn (HistGradientBoosting / CatBoost) |
-| Model Storage | joblib |
+| ML | FastAI Tabular (primary), scikit-learn / CatBoost blend (legacy fallback) |
+| Model Storage | export.pkl (FastAI) or joblib (legacy) |
+
+## Iteration Story
+
+I built a full end-to-end product first: data → baseline model → API → UI. It worked, but accuracy and generalization weren’t where I wanted. I reviewed the pipeline and found a **legacy train/serve feature mismatch** (inference omitted `region` and `manufacturer_model`, so the server didn’t send the same features the preprocessor was fit on). I also wanted better handling of high-cardinality categoricals and consistent use of region. I moved toward **FastAI Tabular** (following Jeremy Howard’s practical approach): tabular embeddings for make/model/region, shared feature engineering between training and inference, and region + interaction features (`region_x_make`, `manufacturer_model`). I fixed the legacy path so both pipelines use the same feature engineering, added early stopping and regularization to FastAI training, and introduced R2 and validation/test metric reporting. I measured before/after and documented it below.
+
+## Model Pipelines
+
+- **Primary (production):** FastAI Tabular. Script: `training/train_fastai.py`. Artifacts: `server/models/export.pkl`, `server/models/model_config.json`, `server/models/training_metrics.json`. The server loads `export.pkl` at startup and uses it for `/predict` when present; preprocessing is identical to training via `server/feature_engineering.py`.
+- **Legacy (fallback):** scikit-learn/CatBoost blend. Script: `training/train_model.py`. Artifacts: `server/models/price_model.joblib`, `server/models/preprocessor.joblib`, `server/models/model_q_low.joblib`, `server/models/model_q_high.joblib`, `server/models/training_metrics.json` (or `metrics.json`). Used only when FastAI artifacts are missing.
+- **Feature engineering** is shared: `server/feature_engineering.py` (`ensure_region`, `add_engineered_features`). Both training scripts and inference (`prepare_input` / `prepare_input_fastai` in `server/main.py`) use it so train and serve stay aligned.
+
+## Results
+
+Baseline metrics (from repo metrics files; split: random, seed 42). After improvements, re-run training and update this table with the new numbers.
+
+| Pipeline        | MAE    | RMSE   | MAPE  | Within ±10% | Within ±15% | R2   | Split  |
+|-----------------|--------|--------|-------|-------------|-------------|------|--------|
+| FastAI (before) | $3,264 | $6,318 | 32.4% | 41.0%       | 57.6%       | —    | random |
+| Legacy (before) | $3,269 | $5,165 | 24.6% | 38.7%       | 52.1%       | —    | random |
+
+*After running `python training/train_fastai.py` (with early stopping + R2), check `server/models/training_metrics.json` for `validation` and `test` metrics and add a row here.*
+
+**Note:** `region_url` in the dataset is intentionally unused; only `region` (and state as fallback) is used for location.
 
 ## Project Structure
 
@@ -42,15 +65,17 @@ Fair Price Prediction/
 │   │   └── lib/           # Utilities & API client
 │   └── public/data/       # Static data (metrics, insights, dropdowns)
 ├── server/                 # FastAPI backend
-│   ├── main.py            # API endpoints
-│   ├── models/            # Trained model artifacts
+│   ├── main.py            # API endpoints (loads export.pkl or legacy joblib)
+│   ├── feature_engineering.py  # Shared features (region, interactions)
+│   ├── models/            # Trained model artifacts (export.pkl, training_metrics.json, etc.)
 │   ├── data/              # Generated lookup data
 │   │   └── vehicle_options.json
 │   ├── scripts/           # Data generation scripts
 │   │   └── generate_vehicle_options.py
-│   └── requirements.txt   # Python dependencies
+│   └── requirements.txt  # Python dependencies
 ├── training/               # ML training pipeline
-│   └── train_model.py     # Model training script (v2.0)
+│   ├── train_fastai.py    # FastAI Tabular (primary)
+│   └── train_model.py     # Legacy blend (fallback)
 ├── docs/                   # Documentation
 └── vehicles.csv           # Dataset (Craigslist cars & trucks)
 ```
@@ -65,7 +90,7 @@ Fair Price Prediction/
 
 ### 1. Train the Model
 
-First, install Python dependencies and train the model:
+First, install Python dependencies and train the model. **Primary pipeline: FastAI Tabular.**
 
 ```bash
 # Create virtual environment
@@ -79,17 +104,20 @@ source venv/bin/activate
 # Install dependencies
 pip install -r server/requirements.txt
 
-# Train the model
+# Train FastAI model (recommended; saves export.pkl + training_metrics.json)
+python training/train_fastai.py
+```
+
+Optional — train legacy blend (scikit-learn/CatBoost) for fallback or comparison:
+
+```bash
 python training/train_model.py
 ```
 
-This will:
-- Analyze the dataset and report statistics
-- Clean and engineer features (age, log mileage, frequency filtering)
-- Train prediction models (main + p10/p50/p90 quantile models)
-- Generate comprehensive metrics (MAE, RMSE, MAPE, within ±10%/±15%, interval coverage)
-- Generate market insights
-- Save all artifacts to `server/models/` and `web/public/data/`
+Training will:
+- Use shared feature engineering (`server/feature_engineering.py`: region, manufacturer_model, region_x_make, age/mileage interactions)
+- Save artifacts to `server/models/` (FastAI: `export.pkl`, `model_config.json`, `training_metrics.json`; legacy: `price_model.joblib`, `preprocessor.joblib`, etc.)
+- Report validation (and test) metrics including MAE, RMSE, MAPE, R2, within ±10%/±15%
 
 ### 2. Start the Backend
 
