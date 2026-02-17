@@ -91,6 +91,24 @@ export default function MethodologyPage() {
           </div>
         )}
 
+        {/* Model Update / How it works */}
+        <div className="mb-12 bg-slate-100 dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-3">
+            Model Update — How It Works
+          </h2>
+          <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">
+            The predictor uses a <strong>FastAI Tabular</strong> model (when available) with shared feature engineering between training and inference for consistency.
+          </p>
+          <ul className="list-disc list-inside text-slate-600 dark:text-slate-300 text-sm space-y-1">
+            <li><strong>Region</strong> — Your location (or state) is used so estimates reflect local market conditions when provided.</li>
+            <li><strong>Interaction features</strong> — Make×model and region×make combinations improve accuracy for specific configurations.</li>
+            <li><strong>Tabular embeddings</strong> — High-cardinality categories (make, model, region) are learned as embeddings instead of one-hot, reducing dimensionality and improving generalization.</li>
+          </ul>
+          <p className="text-slate-500 dark:text-slate-400 text-xs mt-3">
+            Before/after metrics are documented in the README and in the results table after each training run.
+          </p>
+        </div>
+
         {/* 6-Step Process Cards */}
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-8 text-center">
           My 6-Step Process
