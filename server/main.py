@@ -24,6 +24,11 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 from starlette.middleware.base import BaseHTTPMiddleware
 
+try:
+    from server.feature_engineering import add_engineered_features, ensure_region
+except ImportError:
+    from feature_engineering import add_engineered_features, ensure_region
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
@@ -174,10 +179,11 @@ class CarDetails(BaseModel):
     type: Optional[str] = Field(default=None, description="Vehicle type")
     paint_color: Optional[str] = Field(default=None, description="Paint color")
     state: Optional[str] = Field(default=None, description="State")
+    region: Optional[str] = Field(default=None, description="Region (optional; falls back to state)")
     cylinders: Optional[str] = Field(default=None, description="Number of cylinders")
     title_status: Optional[str] = Field(default="clean", description="Title status")
     
-    @validator('manufacturer', 'model', pre=True)
+    @validator('manufacturer', 'model', 'region', pre=True)
     def lowercase_strings(cls, v):
         if isinstance(v, str):
             return v.lower().strip()
@@ -235,15 +241,40 @@ config = {}
 comparables_df = None
 feature_importance = {}
 vehicle_options = {}  # For dependent dropdowns
+fastai_learner = None  # FastAI TabularLearner when export.pkl is used
+fastai_config = {}  # cat_names, cont_names, y_name from model_config.json when using FastAI
 
 
 def load_models():
     """Load all trained models and data."""
-    global models, preprocessor, config, comparables_df, feature_importance
+    global models, preprocessor, config, comparables_df, feature_importance, fastai_learner, fastai_config
     
     print("Loading models...")
     
-    # Load preprocessor (MUST be loaded for prediction to work)
+    # Try FastAI export first (same preprocessing at serve time)
+    export_path = MODELS_DIR / "export.pkl"
+    config_path = MODELS_DIR / "model_config.json"
+    if export_path.exists() and config_path.exists():
+        try:
+            from fastai.learner import load_learner
+            fastai_learner = load_learner(export_path)
+            with open(config_path) as f:
+                cfg = json.load(f)
+            if cfg.get("model_type") == "fastai_tabular":
+                fastai_config["cat_names"] = cfg.get("cat_names", [])
+                fastai_config["cont_names"] = cfg.get("cont_names", [])
+                fastai_config["y_name"] = cfg.get("y_name", "log_price")
+                fastai_config["target_column"] = cfg.get("target_column", "price")
+                print(f"[OK] Loaded FastAI Tabular learner from {export_path}")
+        except Exception as e:
+            print(f"[WARN] FastAI export load failed: {e}")
+            fastai_learner = None
+            fastai_config.clear()
+    else:
+        fastai_learner = None
+        fastai_config.clear()
+    
+    # Load preprocessor (MUST be loaded for prediction when not using FastAI)
     preprocessor_path = MODELS_DIR / "preprocessor.joblib"
     if preprocessor_path.exists():
         preprocessor = joblib.load(preprocessor_path)
@@ -251,7 +282,7 @@ def load_models():
     else:
         print(f"[WARN] Preprocessor not found at {preprocessor_path}")
     
-    # Load main model
+    # Load main model (used when FastAI not available)
     model_path = MODELS_DIR / "price_model.joblib"
     if model_path.exists():
         models['main'] = joblib.load(model_path)
@@ -307,28 +338,55 @@ async def startup_event():
 
 
 def prepare_input(car: CarDetails) -> pd.DataFrame:
-    """Prepare input data for prediction."""
-    current_year = datetime.now().year
-    
+    """Prepare input data for prediction (legacy joblib path). Aligned with training: region, manufacturer_model, region_x_make + shared feature engineering."""
     data = {
-        'year': car.year,
-        'odometer': car.odometer,
-        'manufacturer': car.manufacturer,
-        'model': car.model if car.model else 'unknown',
-        'condition': car.condition or 'unknown',
-        'fuel': car.fuel or 'unknown',
-        'transmission': car.transmission or 'unknown',
-        'drive': car.drive or 'unknown',
-        'type': car.type or 'unknown',
-        'paint_color': car.paint_color or 'unknown',
-        'state': car.state or 'unknown',
-        'cylinders': car.cylinders or 'unknown',
-        'title_status': car.title_status or 'clean',
-        'car_age': current_year - car.year,
-        'log_odometer': np.log1p(car.odometer)
+        "year": car.year,
+        "odometer": car.odometer,
+        "manufacturer": car.manufacturer.lower().strip(),
+        "model": (car.model or "unknown").lower().strip(),
+        "condition": (car.condition or "unknown").lower().strip(),
+        "fuel": (car.fuel or "unknown").lower().strip(),
+        "transmission": (car.transmission or "unknown").lower().strip(),
+        "drive": (car.drive or "unknown").lower().strip(),
+        "type": (car.type or "unknown").lower().strip(),
+        "paint_color": (car.paint_color or "unknown").lower().strip(),
+        "state": (car.state or "unknown").lower().strip(),
+        "region": (car.region or car.state or "unknown").lower().strip(),
+        "cylinders": (car.cylinders or "unknown").lower().strip(),
+        "title_status": (car.title_status or "clean").lower().strip(),
     }
-    
-    return pd.DataFrame([data])
+    df = pd.DataFrame([data])
+    df = ensure_region(df, region_col="region", state_col="state")
+    df = add_engineered_features(df, year_col="year", odometer_col="odometer")
+    return df
+
+
+def prepare_input_fastai(car: CarDetails) -> pd.DataFrame:
+    """Build one-row DataFrame for FastAI with same feature engineering as training."""
+    region = (car.region or car.state or "unknown").lower().strip()
+    data = {
+        "year": car.year,
+        "odometer": car.odometer,
+        "manufacturer": car.manufacturer.lower().strip(),
+        "model": (car.model or "unknown").lower().strip(),
+        "condition": (car.condition or "unknown").lower().strip(),
+        "fuel": (car.fuel or "unknown").lower().strip(),
+        "transmission": (car.transmission or "unknown").lower().strip(),
+        "drive": (car.drive or "unknown").lower().strip(),
+        "type": (car.type or "unknown").lower().strip(),
+        "paint_color": (car.paint_color or "unknown").lower().strip(),
+        "state": (car.state or "unknown").lower().strip(),
+        "region": region,
+        "cylinders": (car.cylinders or "unknown").lower().strip(),
+        "title_status": (car.title_status or "clean").lower().strip(),
+    }
+    df = pd.DataFrame([data])
+    df = ensure_region(df, region_col="region", state_col="state")
+    df = add_engineered_features(df, year_col="year", odometer_col="odometer")
+    cat_names = fastai_config.get("cat_names", [])
+    cont_names = fastai_config.get("cont_names", [])
+    cols = [c for c in (cat_names + cont_names) if c in df.columns]
+    return df[cols]
 
 
 def find_comparables(car: CarDetails, n: int = 10) -> List[Dict]:
@@ -604,6 +662,7 @@ async def health():
     return {
         "status": "healthy",
         "models_loaded": len(models),
+        "use_fastai": fastai_learner is not None,
         "comparables_count": len(comparables_df) if comparables_df is not None else 0
     }
 
@@ -727,20 +786,20 @@ async def get_common_defaults(make: str, model: str):
 
 def get_cache_key(car: CarDetails) -> str:
     """Generate a cache key for a prediction request."""
-    key_data = f"{car.year}-{car.manufacturer}-{car.model}-{car.odometer}-{car.condition}-{car.fuel}-{car.transmission}-{car.drive}-{car.type}"
+    key_data = f"{car.year}-{car.manufacturer}-{car.model}-{car.odometer}-{car.condition}-{car.fuel}-{car.transmission}-{car.drive}-{car.type}-{car.region or ''}-{car.state or ''}"
     return hashlib.md5(key_data.encode()).hexdigest()
 
 
 @app.post("/predict", response_model=PredictionResponse)
 async def predict_price(request: Request, car: CarDetails):
     """Predict the fair market price for a used car."""
-    global preprocessor
+    global preprocessor, fastai_learner
     
-    if 'main' not in models:
+    use_fastai = fastai_learner is not None
+    if not use_fastai and 'main' not in models:
         logger.error("Prediction requested but model not loaded")
         raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
-    
-    if preprocessor is None:
+    if not use_fastai and preprocessor is None:
         logger.error("Prediction requested but preprocessor not loaded")
         raise HTTPException(status_code=503, detail="Service temporarily unavailable. Please try again later.")
     
@@ -756,26 +815,28 @@ async def predict_price(request: Request, car: CarDetails):
         # Log prediction request (no PII)
         logger.info(f"Prediction request: {car.year} {car.manufacturer} {car.model}, {car.odometer} miles")
         
-        # Prepare input
-        input_df = prepare_input(car)
-        
-        # Transform input using preprocessor (converts categorical to numeric)
-        input_transformed = preprocessor.transform(input_df)
-        
-        # Get predictions (models predict log-transformed price)
-        main_pred_log = models['main'].predict(input_transformed)[0]
-        predicted_price = float(np.expm1(main_pred_log))
-        
-        # Get quantile predictions for confidence interval
-        if 'quantile_low' in models and 'quantile_high' in models:
-            low_pred_log = models['quantile_low'].predict(input_transformed)[0]
-            high_pred_log = models['quantile_high'].predict(input_transformed)[0]
-            price_low = float(np.expm1(low_pred_log))
-            price_high = float(np.expm1(high_pred_log))
-        else:
-            # Fallback: estimate interval as ±15%
+        if use_fastai:
+            input_df = prepare_input_fastai(car)
+            row = input_df.iloc[0]
+            pred_result = fastai_learner.predict(row)
+            # TabularLearner regression: pred_result is (dec_pred_tensor,) or (pred_val,)
+            pred_log = float(pred_result[0].item() if hasattr(pred_result[0], 'item') else pred_result[0])
+            predicted_price = float(np.expm1(pred_log))
             price_low = predicted_price * 0.85
             price_high = predicted_price * 1.15
+        else:
+            input_df = prepare_input(car)
+            input_transformed = preprocessor.transform(input_df)
+            main_pred_log = models['main'].predict(input_transformed)[0]
+            predicted_price = float(np.expm1(main_pred_log))
+            if 'quantile_low' in models and 'quantile_high' in models:
+                low_pred_log = models['quantile_low'].predict(input_transformed)[0]
+                high_pred_log = models['quantile_high'].predict(input_transformed)[0]
+                price_low = float(np.expm1(low_pred_log))
+                price_high = float(np.expm1(high_pred_log))
+            else:
+                price_low = predicted_price * 0.85
+                price_high = predicted_price * 1.15
         
         # Ensure sensible bounds
         price_low = max(500, price_low)
@@ -863,12 +924,11 @@ async def get_insights():
 @app.get("/metrics")
 async def get_metrics():
     """Get model performance metrics."""
-    metrics_path = MODELS_DIR / "metrics.json"
-    
-    if metrics_path.exists():
-        with open(metrics_path) as f:
-            return json.load(f)
-    
+    for name in ("metrics.json", "training_metrics.json"):
+        metrics_path = MODELS_DIR / name
+        if metrics_path.exists():
+            with open(metrics_path) as f:
+                return json.load(f)
     raise HTTPException(status_code=404, detail="Metrics not found. Please run training first.")
 
 
