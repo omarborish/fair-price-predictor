@@ -77,16 +77,17 @@ const nextConfig = {
             value: 'same-origin',
           },
           // CSP Report-Only: safe baseline for AdSense + Umami; enforce later after monitoring reports
+          // Umami: cloud.umami.is + api-gateway.umami.dev (send endpoint). Google: pagead + ad traffic quality.
           {
             key: 'Content-Security-Policy-Report-Only',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://cloud.umami.is https://*.umami.is",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://pagead2.googlesyndication.com https://cloud.umami.is https://*.umami.is https://ep2.adtrafficquality.google",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: https: http:",
-              "connect-src 'self' https://*.supabase.co https://cloud.umami.is https://*.umami.is",
-              "frame-src https://googleads.g.doubleclick.net",
+              "connect-src 'self' https://*.supabase.co https://cloud.umami.is https://*.umami.is https://api-gateway.umami.dev https://ep1.adtrafficquality.google",
+              "frame-src https://googleads.g.doubleclick.net https://ep2.adtrafficquality.google https://www.google.com",
             ].join('; '),
           },
         ],

@@ -1,0 +1,8 @@
+# Model files storage (for Render deploy / future reference)
+
+Google Drive folder containing models.zip (653 MB):
+https://drive.google.com/drive/folders/1HIMDJNXyBJMJlPwEEVASdmg7wgXj1hX5?usp=drive_link
+
+For Render: use MODEL_DOWNLOAD_ZIP with a *direct* download URL to models.zip.
+- To get a direct link: open the folder above, right-click models.zip → Get link (or Share).
+- Or use a "direct download" converter (e.g. Google Drive direct link generator) and paste that URL into Render env var MODEL_DOWNLOAD_ZIP.

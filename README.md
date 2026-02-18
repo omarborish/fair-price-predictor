@@ -365,6 +365,8 @@ Deploy to any Python hosting:
 - AWS Lambda + API Gateway
 - DigitalOcean App Platform
 
+**Render (step-by-step):** See [docs/DEPLOY_RENDER.md](docs/DEPLOY_RENDER.md) for build/start commands, environment variables, and how to get model files (`export.pkl`, etc.) onto the service.
+
 Example Dockerfile:
 
 ```dockerfile
