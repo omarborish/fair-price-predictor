@@ -25,9 +25,21 @@ from pydantic import BaseModel, Field, validator
 from starlette.middleware.base import BaseHTTPMiddleware
 
 try:
-    from server.feature_engineering import add_engineered_features, ensure_region
+    from server.feature_engineering import (
+        add_engineered_features,
+        ensure_region,
+        add_time_features,
+        add_buckets,
+        add_more_cont_features,
+    )
 except ImportError:
-    from feature_engineering import add_engineered_features, ensure_region
+    from feature_engineering import (
+        add_engineered_features,
+        ensure_region,
+        add_time_features,
+        add_buckets,
+        add_more_cont_features,
+    )
 
 # Configure logging
 logging.basicConfig(
@@ -244,12 +256,19 @@ vehicle_options = {}  # For dependent dropdowns
 fastai_learner = None  # FastAI TabularLearner when export.pkl is used (single model)
 fastai_learners = []  # List of FastAI learners for ensemble
 fastai_config = {}  # cat_names, cont_names, y_name from model_config.json when using FastAI
+catboost_model = None  # CatBoostRegressor when catboost.cbm present (for blending)
+catboost_config = {}  # feature_cols, cat_cols from catboost_config.json
+ensemble_config = {}  # type, w_fastai, w_catboost from ensemble_config.json
+dealer_clf = None  # Dealer classifier for dealer_score; default 0.0 if missing
+dealer_clf_config = {}  # feature_cols for dealer classifier
+conformal_config = {}  # qhat, min_price, max_price from conformal.json (optional)
 
 
 def load_models():
     """Load all trained models and data."""
-    global models, preprocessor, config, comparables_df, feature_importance, fastai_learner, fastai_learners, fastai_config
-    
+    global models, preprocessor, config, comparables_df, feature_importance
+    global fastai_learner, fastai_learners, fastai_config, catboost_model, catboost_config, ensemble_config, dealer_clf, dealer_clf_config, conformal_config, conformal_config
+
     print("Loading models...")
     
     # Try FastAI export first (same preprocessing at serve time)
@@ -381,6 +400,60 @@ def load_models():
             feature_importance.update(metrics.get('feature_importance', {}))
         print(f"[OK] Loaded feature importance")
     
+    # CatBoost + ensemble (for blending with FastAI)
+    cb_path = MODELS_DIR / "catboost.cbm"
+    ens_path = MODELS_DIR / "ensemble_config.json"
+    if cb_path.exists():
+        try:
+            from catboost import CatBoostRegressor
+            catboost_model = CatBoostRegressor()
+            catboost_model.load_model(str(cb_path))
+            cb_cfg_path = MODELS_DIR / "catboost_config.json"
+            if cb_cfg_path.exists():
+                catboost_config = json.loads(cb_cfg_path.read_text())
+            else:
+                catboost_config = {}
+            print("[OK] Loaded CatBoost model for blending")
+        except Exception as e:
+            print(f"[WARN] CatBoost load failed: {e}")
+            catboost_model = None
+            catboost_config = {}
+    else:
+        catboost_model = None
+        catboost_config = {}
+    if ens_path.exists():
+        ensemble_config = json.loads(ens_path.read_text())
+    else:
+        ensemble_config = {"type": "none"}
+
+    # Dealer classifier (for dealer_score feature; optional)
+    dealer_path = MODELS_DIR / "dealer_clf.cbm"
+    dealer_cfg_path = MODELS_DIR / "dealer_clf_config.json"
+    if dealer_path.exists():
+        try:
+            from catboost import CatBoostClassifier
+            dealer_clf = CatBoostClassifier()
+            dealer_clf.load_model(str(dealer_path))
+            if dealer_cfg_path.exists():
+                dealer_clf_config = json.loads(dealer_cfg_path.read_text())
+            else:
+                dealer_clf_config = {}
+            print("[OK] Loaded dealer classifier for dealer_score")
+        except Exception as e:
+            print(f"[WARN] Dealer classifier load failed: {e}")
+            dealer_clf = None
+            dealer_clf_config = {}
+    else:
+        dealer_clf = None
+        dealer_clf_config = {}
+
+    conformal_path = MODELS_DIR / "conformal.json"
+    if conformal_path.exists():
+        conformal_config = json.loads(conformal_path.read_text())
+        print("[OK] Loaded conformal intervals (qhat)")
+    else:
+        conformal_config = {}
+
     # Load comparables data
     comparables_path = MODELS_DIR / "comparables_data.parquet"
     if comparables_path.exists():
@@ -452,10 +525,32 @@ def prepare_input_fastai(car: CarDetails) -> pd.DataFrame:
     df = pd.DataFrame([data])
     df = ensure_region(df, region_col="region", state_col="state")
     df = add_engineered_features(df, year_col="year", odometer_col="odometer")
+    # Time features: no posting_date at inference -> default to now
+    df = add_time_features(df, posting_date_col="posting_date", now=datetime.now())
+    df = add_buckets(df)
+    df = add_more_cont_features(df)
+    # dealer_score from classifier (contract-safe; default 0.0 if no classifier)
+    if dealer_clf is not None and dealer_clf_config:
+        try:
+            feat_cols = dealer_clf_config.get("feature_cols", [])
+            d_df = df.reindex(columns=feat_cols, fill_value=0)
+            for c in dealer_clf_config.get("cat_cols", []):
+                if c in d_df.columns and d_df[c].dtype != object and str(d_df[c].dtype) != "category":
+                    d_df[c] = d_df[c].astype(str).replace("0", "unknown")
+            proba = dealer_clf.predict_proba(d_df)
+            dealer_score = float(proba[0][1]) if proba.shape[1] > 1 else 0.0
+        except Exception:
+            dealer_score = 0.0
+    else:
+        dealer_score = 0.0
+    df["dealer_score"] = dealer_score
     cat_names = fastai_config.get("cat_names", [])
     cont_names = fastai_config.get("cont_names", [])
     cols = [c for c in (cat_names + cont_names) if c in df.columns]
-    return df[cols]
+    missing = [c for c in (cat_names + cont_names) if c not in df.columns]
+    if missing:
+        logger.debug("FastAI missing cols (will use fill): %s", missing[:5])
+    return df[cols] if cols else df
 
 
 def find_comparables(car: CarDetails, n: int = 10) -> List[Dict]:
@@ -894,17 +989,39 @@ async def predict_price(request: Request, car: CarDetails):
                 pred_logs = []
                 for learner in fastai_learners:
                     pred_result = learner.predict(row)
-                    pred_log = float(pred_result[0].item() if hasattr(pred_result[0], 'item') else pred_result[0])
-                    pred_logs.append(pred_log)
+                    pl = float(pred_result[0].item() if hasattr(pred_result[0], 'item') else pred_result[0])
+                    pred_logs.append(pl)
                 pred_log = float(np.mean(pred_logs))
             else:
                 # Single model
                 pred_result = fastai_learner.predict(row)
                 pred_log = float(pred_result[0].item() if hasattr(pred_result[0], 'item') else pred_result[0])
-            
+
+            # Optional: blend with CatBoost
+            if catboost_model is not None and ensemble_config.get("type") == "blend":
+                try:
+                    feat_cols = catboost_config.get("feature_cols", list(input_df.columns))
+                    cb_df = input_df.reindex(columns=feat_cols, fill_value=0)
+                    for c in catboost_config.get("cat_cols", []):
+                        if c in cb_df.columns and cb_df[c].dtype != object and cb_df[c].dtype.name != "category":
+                            cb_df[c] = cb_df[c].astype(str).replace("0", "unknown")
+                    cb_pred_log = float(catboost_model.predict(cb_df)[0])
+                    w_fa = float(ensemble_config.get("w_fastai", 0.6))
+                    w_cb = float(ensemble_config.get("w_catboost", 0.4))
+                    pred_log = w_fa * pred_log + w_cb * cb_pred_log
+                except Exception as e:
+                    logger.warning("CatBoost blend failed, using FastAI only: %s", e)
+
             predicted_price = float(np.expm1(pred_log))
-            price_low = predicted_price * 0.85
-            price_high = predicted_price * 1.15
+            if conformal_config and "qhat" in conformal_config:
+                qhat = conformal_config["qhat"]
+                mn = conformal_config.get("min_price", 500)
+                mx = conformal_config.get("max_price", 250_000)
+                price_low = max(mn, predicted_price - qhat)
+                price_high = min(mx, predicted_price + qhat)
+            else:
+                price_low = predicted_price * 0.85
+                price_high = predicted_price * 1.15
         else:
             input_df = prepare_input(car)
             input_transformed = preprocessor.transform(input_df)
@@ -1011,6 +1128,27 @@ async def get_metrics():
             with open(metrics_path) as f:
                 return json.load(f)
     raise HTTPException(status_code=404, detail="Metrics not found. Please run training first.")
+
+
+@app.get("/model_info")
+async def get_model_info():
+    """Get model config + training metrics for website (model type, key metrics, training time)."""
+    config_path = MODELS_DIR / "model_config.json"
+    metrics_path = MODELS_DIR / "training_metrics.json"
+    if not metrics_path.exists():
+        metrics_path = MODELS_DIR / "metrics.json"
+    out = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            out["model_config"] = json.load(f)
+    else:
+        out["model_config"] = {}
+    if metrics_path.exists():
+        with open(metrics_path) as f:
+            out["training_metrics"] = json.load(f)
+    else:
+        out["training_metrics"] = {}
+    return out
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+{
+  "type": "blend",
+  "w_fastai": 0.6,
+  "w_catboost": 0.4
+}
