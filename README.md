@@ -50,7 +50,7 @@ Validation and test metrics are close (no overfitting). Latest numbers are in `s
 - **Training time:** ~25–45 minutes on CPU (depending on hardware); GPU is supported if available.
 - **Epochs:** Up to 30 with one-cycle LR; **early stopping** (patience=3 on validation loss) typically stops around epoch 25–28. The **best model by validation loss** is saved automatically (SaveModelCallback), not the last epoch.
 - **Hardware:** Runs on CPU by default; uses GPU if PyTorch detects CUDA.
-- **Artifacts:** `server/models/export.pkl`, `model_config.json`, `training_metrics.json`.
+- **Artifacts:** `server/models/export.pkl`, `model_config.json`, `training_metrics.json`. Run `python training/train_fastai.py` to generate these; the backend uses `export.pkl` when present.
 
 Optional tuning via environment variables: `LOSS_TYPE=huber` (SmoothL1), `HUBER_DELTA=0.1`, `LAYERS=512,256`, `WD=0.001`. See `training/EXPERIMENTS.md` for the experiment log.
 
