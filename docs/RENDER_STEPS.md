@@ -16,11 +16,10 @@ You need the contents of **`server/models/`** (from a past training) available a
    - **Mac/Linux:**  
      `cd server/models && zip -r ../../models.zip . && cd ../..`
 2. Upload **models.zip** to any host that gives you a **direct download URL**, for example:
-   - [Google Drive](https://drive.google.com): upload → Right‑click file → Get link → set “Anyone with the link” → use a “direct” link (e.g. from [this generator](https://sites.google.com/site/gdocs2direct/) or similar).
+   - **Google Drive:** Upload models.zip, then **open the file** (click it), then Share → Copy link. You must use the **file** link (e.g. `https://drive.google.com/file/d/XXXXXXXX/view?usp=sharing`), **not** the folder link — the build script will convert it. Or use: `https://drive.google.com/uc?export=download&id=XXXXXXXX` (replace XXXXXXXX with the file ID from the share link).
    - [Dropbox](https://dropbox.com): upload → Share → copy link → change `?dl=0` to `?dl=1` so it’s a direct download.
    - [GitHub Release](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository): create a release, attach **models.zip**, copy the “Asset” download URL.
-3. Copy that URL — you’ll paste it in Render (Step 4 below). Example:  
-   `https://github.com/yourname/your-repo/releases/download/v1.0/models.zip`
+3. Copy that URL — you’ll paste it in Render (Environment → MODEL_DOWNLOAD_ZIP). **Do not use a Google Drive folder URL** (e.g. `/drive/folders/...`); use the link to **models.zip** itself.
 
 ### Option 2 — AWS S3 (if you use S3)
 
@@ -125,6 +124,9 @@ You need the contents of **`server/models/`** (from a past training) available a
 - **Build fails: "can't open file '.../server/scripts/download_models.py': No such file or directory"**  
   The script isn’t in the repo Render is building. Commit and push it:  
   `git add server/scripts/download_models.py` then `git commit -m "Add model download script for Render"` and `git push`. Then redeploy.
+
+- **Build fails: "File is not a zip file" or "Downloaded file is not a valid zip"**  
+  You used a **folder** link (e.g. Google Drive folder). Use the link to **models.zip** itself: open the folder, click models.zip, Share → Copy link, and set that as `MODEL_DOWNLOAD_ZIP`. See [MODEL_STORAGE_LINK.txt](MODEL_STORAGE_LINK.txt).
 
 - **Build fails on `download_models.py`** (e.g. download error)  
   Check that the URL is correct and that the zip is publicly downloadable (or use a signed URL). In Logs, look for the exact error (e.g. 403, 404).
