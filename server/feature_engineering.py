@@ -105,6 +105,7 @@ def add_time_features(
     else:
         dt = pd.Series([pd.Timestamp(now)] * len(df), index=df.index)
     dt = dt.fillna(pd.Timestamp(now))
+    dt = pd.to_datetime(dt, errors="coerce").fillna(pd.Timestamp(now))
     df["posting_year"] = dt.dt.year.astype("int32")
     df["posting_month"] = dt.dt.month.astype("int32")
     return df
