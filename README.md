@@ -52,7 +52,15 @@ Validation and test metrics are close (no overfitting). Latest numbers are in `s
 - **Hardware:** Runs on CPU by default; uses GPU if PyTorch detects CUDA.
 - **Artifacts:** `server/models/export.pkl`, `model_config.json`, `training_metrics.json`. Run `python training/train_fastai.py` to generate these; the backend uses `export.pkl` when present.
 
-Optional tuning via environment variables: `LOSS_TYPE=huber` (SmoothL1), `HUBER_DELTA=0.1`, `LAYERS=512,256`, `WD=0.001`. See `training/EXPERIMENTS.md` for the experiment log.
+Optional tuning via environment variables: `LOSS_TYPE=mse|huber|smoothl1`, `HUBER_DELTA=0.1`, `SMOOTHL1_BETA=1.0`, `SPLIT_STRATEGY=random|group`, `GROUP_KEY=manufacturer_model|region_x_make`, `LAYERS=512,256`, `WD=0.001`. Each run appends to `training/EXPERIMENTS.md` (git hash, seed, metrics, training time, hardware).
+
+**Extended pipeline (optional):**
+1. **Dealer score:** `python training/train_dealer_classifier.py` → weak labels from description; adds `dealer_score` feature (default 0 if missing).
+2. **CatBoost blend:** After FastAI, run `python training/train_catboost.py` (uses `split_indices.json`). Then `server/models/ensemble_config.json` (e.g. 0.6 FastAI, 0.4 CatBoost).
+3. **Conformal intervals:** `python training/calibrate_conformal.py` → `server/models/conformal.json`; API uses pred ± qhat for price range when present.
+4. **Error analysis:** `python training/analyze_errors.py` → `training/error_report.md`, `training/figures/*.png`.
+
+API: `GET /model_info` returns `model_config` + `training_metrics` (model type, key metrics, training time) for the website.
 
 ## Engineering Lessons & Challenges
 
