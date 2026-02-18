@@ -101,7 +101,7 @@ def add_time_features(
     if now is None:
         now = datetime.now()
     if posting_date_col in df.columns:
-        dt = pd.to_datetime(df[posting_date_col], errors="coerce")
+        dt = pd.to_datetime(df[posting_date_col], errors="coerce", utc=True)
     else:
         dt = pd.Series([pd.Timestamp(now)] * len(df), index=df.index)
     dt = dt.fillna(pd.Timestamp(now))
