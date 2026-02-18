@@ -158,6 +158,34 @@ export default function HomePage() {
               </p>
             </div>
           </div>
+
+          {/* Model Update - Accuracy improvements */}
+          <div className="mt-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 p-6">
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">
+              Model Update
+            </h3>
+            <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
+              Predictions are now powered by a <strong>FastAI Tabular</strong> neural network with region-aware embeddings and interaction features (make×model, region×make) for improved accuracy.
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-slate-500 dark:text-slate-400">MAE vs previous</p>
+                <p className="font-semibold text-slate-900 dark:text-white">~17% better</p>
+              </div>
+              <div>
+                <p className="text-slate-500 dark:text-slate-400">Within ±10%</p>
+                <p className="font-semibold text-slate-900 dark:text-white">~51%</p>
+              </div>
+              <div>
+                <p className="text-slate-500 dark:text-slate-400">Within ±15%</p>
+                <p className="font-semibold text-slate-900 dark:text-white">~64%</p>
+              </div>
+              <div>
+                <p className="text-slate-500 dark:text-slate-400">R²</p>
+                <p className="font-semibold text-slate-900 dark:text-white">~0.85</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
