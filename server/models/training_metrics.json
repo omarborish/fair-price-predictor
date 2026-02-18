@@ -1,6 +1,18 @@
 {
   "model_type": "fastai_tabular",
-  "export_path": "export.pkl",
+  "validation": {
+    "mae": 2779.245174490446,
+    "rmse": 5782.172842607658,
+    "mape": 29.52148541260226,
+    "r2": 0.8512681167169678,
+    "within_10pct": 49.589851422233515,
+    "within_15pct": 63.69203040876216,
+    "p95_error": 9215.86020273392,
+    "p99_error": 23181.05094400318
+  },
+  "training_samples": 245242,
+  "validation_samples": 43277,
+  "test_samples": 96172,
   "cat_names": [
     "manufacturer",
     "model",
@@ -42,9 +54,6 @@
     "age_sq"
   ],
   "y_name": "log_price",
-  "target_column": "price",
-  "min_price": 500,
-  "max_price": 250000,
   "split_strategy": "random",
   "loss_type": "mse",
   "ensemble_size": 1,

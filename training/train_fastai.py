@@ -42,6 +42,18 @@ RANDOM_SEED = 42
 VALID_PCT = 0.15
 TEST_PCT = 0.25
 
+# Experimentation options (can be overridden via env vars)
+LOSS_TYPE = os.getenv("LOSS_TYPE", "mse")  # "mse" | "huber"
+ENSEMBLE_SIZE = int(os.getenv("ENSEMBLE_SIZE", "1"))  # 1 = single model, >1 = ensemble
+SPLIT_STRATEGY = os.getenv("SPLIT_STRATEGY", "random")  # "random" | "group"
+HUBER_DELTA = float(os.getenv("HUBER_DELTA", "0.1"))  # SmoothL1 beta; 0.1 reduces tail sensitivity
+# Architecture tuning: "400,200" (default) or "512,256"
+_LAYERS_ENV = os.getenv("LAYERS", "400,200")
+LAYERS = [int(x.strip()) for x in _LAYERS_ENV.split(",") if x.strip()]
+if not LAYERS:
+    LAYERS = [400, 200]
+WD = float(os.getenv("WD", "0.01"))  # weight decay: 0.001 or 0.01
+
 # Categorical and continuous feature names (after feature engineering)
 CAT_NAMES = [
     "manufacturer",
@@ -58,6 +70,8 @@ CAT_NAMES = [
     "region_x_make",
     "cylinders",
     "title_status",
+    "odometer_bucket",  # New: bucketed odometer
+    "age_bucket",  # New: bucketed age
 ]
 CONT_NAMES = [
     "year",
@@ -68,6 +82,8 @@ CONT_NAMES = [
     "age_x_odometer",
     "age_x_miles_per_year",
     "age_div_odometer",
+    "log_miles_per_year",  # New: log of miles per year
+    "age_sq",  # New: age squared
 ]
 # Optional: add if present in dataset
 CONT_OPTIONAL = ["county", "lat", "long"]
@@ -106,54 +122,53 @@ def get_final_cat_cont(df: pd.DataFrame):
     return cat, cont
 
 
-def main():
-    print("\n" + "=" * 60)
-    print("FAIR PRICE - FastAI Tabular Training")
-    print("=" * 60)
-
-    if not DATA_PATH.exists():
-        print(f"[ERROR] Data not found: {DATA_PATH}")
-        sys.exit(1)
-
-    df = pd.read_csv(DATA_PATH, low_memory=False)
-    print(f"Loaded {len(df):,} rows from {DATA_PATH}")
-
-    df = sanitize_prices(df, TARGET_COL)
-    print(f"After price sanitization: {len(df):,} rows")
-
-    df = prepare_dataframe(df)
-    print(f"After feature engineering: {len(df):,} rows")
-
+def train_single_model(df: pd.DataFrame, seed: int, export_suffix: str = "") -> tuple:
+    """
+    Train a single FastAI model with given seed.
+    Returns: (learn, df_train, df_valid, df_test, cat_names, cont_names, splits, split_strategy_actual, dls)
+    """
+    np.random.seed(seed)
+    
     cat_names, cont_names = get_final_cat_cont(df)
-    print(f"Cat features ({len(cat_names)}): {cat_names}")
-    print(f"Cont features ({len(cont_names)}): {cont_names}")
-
-    # Align: only keep cat + cont + y
     feature_cols = cat_names + cont_names
     if Y_NAME not in df.columns:
         df[Y_NAME] = np.log1p(df[TARGET_COL])
-    df = df[feature_cols + [Y_NAME]].copy()
+    df_work = df[feature_cols + [Y_NAME]].copy()
 
-    # Fill missing in cont with median (FastAI FillMissing will also handle)
-    for c in cont_names:
-        if df[c].isna().any():
-            df[c] = df[c].fillna(df[c].median())
-
-    # Train/valid/test split
-    n = len(df)
-    np.random.seed(RANDOM_SEED)
-    idx = np.random.permutation(n)
-    n_test = int(n * TEST_PCT)
-    n_valid = int((n - n_test) * VALID_PCT)
-    n_train = n - n_test - n_valid
-    test_idx = idx[:n_test]
-    valid_idx = idx[n_test : n_test + n_valid]
-    train_idx = idx[n_test + n_valid :]
+    n = len(df_work)
+    
+    if SPLIT_STRATEGY == "group":
+        # Group split by manufacturer_model (ensures same make/model doesn't leak across splits)
+        from sklearn.model_selection import GroupShuffleSplit
+        if "manufacturer_model" not in df_work.columns:
+            print(f"[WARN] manufacturer_model missing; falling back to random split")
+            split_strategy_actual = "random"
+        else:
+            groups = df_work["manufacturer_model"].values
+            gss = GroupShuffleSplit(n_splits=1, test_size=TEST_PCT, random_state=seed)
+            train_val_idx, test_idx = next(gss.split(df_work, groups=groups))
+            gss2 = GroupShuffleSplit(n_splits=1, test_size=VALID_PCT / (1 - TEST_PCT), random_state=seed)
+            train_idx, valid_idx = next(gss2.split(df_work.iloc[train_val_idx], groups=groups[train_val_idx]))
+            train_idx = train_val_idx[train_idx]
+            valid_idx = train_val_idx[valid_idx]
+            split_strategy_actual = "group"
+            print(f"[SPLIT] Group-based split by manufacturer_model (seed={seed})")
+    else:
+        # Random split (default)
+        idx = np.random.permutation(n)
+        n_test = int(n * TEST_PCT)
+        n_valid = int((n - n_test) * VALID_PCT)
+        n_train = n - n_test - n_valid
+        test_idx = idx[:n_test]
+        valid_idx = idx[n_test : n_test + n_valid]
+        train_idx = idx[n_test + n_valid :]
+        split_strategy_actual = "random"
+        print(f"[SPLIT] Random split (seed={seed})")
 
     splits = (list(train_idx), list(valid_idx))
-    df_train = df.iloc[train_idx]
-    df_valid = df.iloc[valid_idx]
-    df_test = df.iloc[test_idx]
+    df_train = df_work.iloc[train_idx]
+    df_valid = df_work.iloc[valid_idx]
+    df_test = df_work.iloc[test_idx]
     print(f"Train: {len(df_train):,}  Valid: {len(df_valid):,}  Test: {len(df_test):,}")
 
     # FastAI (optional dep; type checker may not have it)
@@ -174,7 +189,7 @@ def main():
 
     procs = [FillMissing, Categorify, Normalize]
     to = TabularPandas(
-        df,
+        df_work,
         procs=procs,
         cat_names=cat_names,
         cont_names=cont_names,
@@ -182,12 +197,24 @@ def main():
         splits=splits,
     )
     dls = to.dataloaders(bs=512)
+    
+    # Configure loss function
+    loss_func = None
+    if LOSS_TYPE == "huber":
+        import torch.nn as nn
+        loss_func = nn.SmoothL1Loss(beta=HUBER_DELTA)  # SmoothL1Loss ≈ Huber with beta=delta
+        print(f"[LOSS] Using Huber/SmoothL1 loss (beta={HUBER_DELTA})")
+    else:
+        print(f"[LOSS] Using MSE loss")
+    
+    print(f"[CONFIG] layers={LAYERS}, wd={WD}")
     learn = tabular_learner(
         dls,
-        layers=[400, 200],
+        layers=LAYERS,
         config=tabular_config(ps=0.3),
         metrics=[mae, rmse],
-        wd=1e-2,
+        wd=WD,
+        loss_func=loss_func,
     )
     from fastai.callback.tracker import SaveModelCallback, EarlyStoppingCallback  # type: ignore[reportMissingImports]
     learn.path = OUTPUT_DIR
@@ -198,23 +225,32 @@ def main():
     learn.fit_one_cycle(30, lr_max=3e-3, cbs=cbs)
 
     # Export (includes procs + model; inference uses this only)
-    export_path = OUTPUT_DIR / "export.pkl"
+    if export_suffix:
+        export_path = OUTPUT_DIR / f"export_seed{seed}.pkl"
+    else:
+        export_path = OUTPUT_DIR / "export.pkl"
     learn.export(export_path)
     print(f"[OK] Exported learner: {export_path}")
+    
+    return learn, df_train, df_valid, df_test, cat_names, cont_names, splits, split_strategy_actual, dls
 
+
+def compute_metrics(learn, df_valid, df_test, cat_names, cont_names, dls) -> tuple:
+    """Compute validation and test metrics. Returns (validation_metrics, test_metrics)."""
     from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-
+    
     log_min = np.log1p(MIN_PRICE)
     log_max = np.log1p(MAX_PRICE)
 
     def _compute_metrics(y_true: np.ndarray, y_pred_log: np.ndarray, label: str) -> dict:
-        """Compute clipped metrics + R2. y_pred_log is in log space."""
+        """Compute clipped metrics + R2 + percentile errors. y_pred_log is in log space."""
         preds_clipped = np.clip(y_pred_log, log_min, log_max)
         y_pred = np.expm1(preds_clipped)
         valid_mask = np.isfinite(y_true) & np.isfinite(y_pred)
         if valid_mask.sum() == 0:
-            return {"mae": None, "rmse": None, "mape": None, "r2": None, "within_10pct": 0.0, "within_15pct": 0.0}
+            return {"mae": None, "rmse": None, "mape": None, "r2": None, "within_10pct": 0.0, "within_15pct": 0.0, "p95_error": None, "p99_error": None}
         y_t, y_p = y_true[valid_mask], y_pred[valid_mask]
+        abs_errors = np.abs(y_t - y_p)
         return {
             "mae": float(mean_absolute_error(y_t, y_p)),
             "rmse": float(np.sqrt(mean_squared_error(y_t, y_p))),
@@ -222,6 +258,8 @@ def main():
             "r2": float(r2_score(y_t, y_p)),
             "within_10pct": float(np.mean(np.abs(y_t - y_p) <= 0.10 * y_t) * 100),
             "within_15pct": float(np.mean(np.abs(y_t - y_p) <= 0.15 * y_t) * 100),
+            "p95_error": float(np.percentile(abs_errors, 95)),
+            "p99_error": float(np.percentile(abs_errors, 99)),
         }
 
     # Validation metrics
@@ -245,37 +283,133 @@ def main():
         test_metrics = _compute_metrics(y_true_test, preds_test, "test")
     except Exception as e:
         print(f"[WARN] Test set metrics skipped: {e}")
+    
+    return validation_metrics, test_metrics
 
+
+def main():
+    print("\n" + "=" * 60)
+    print("FAIR PRICE - FastAI Tabular Training")
+    print("=" * 60)
+    print(f"Configuration: LOSS={LOSS_TYPE}, ENSEMBLE_SIZE={ENSEMBLE_SIZE}, SPLIT={SPLIT_STRATEGY}")
+
+    if not DATA_PATH.exists():
+        print(f"[ERROR] Data not found: {DATA_PATH}")
+        sys.exit(1)
+
+    df = pd.read_csv(DATA_PATH, low_memory=False)
+    print(f"Loaded {len(df):,} rows from {DATA_PATH}")
+
+    df = sanitize_prices(df, TARGET_COL)
+    print(f"After price sanitization: {len(df):,} rows")
+
+    df = prepare_dataframe(df)
+    print(f"After feature engineering: {len(df):,} rows")
+
+    # Determine seeds for ensemble
+    if ENSEMBLE_SIZE > 1:
+        seeds = [RANDOM_SEED + i * 10 for i in range(ENSEMBLE_SIZE)]
+        print(f"\n[ENSEMBLE] Training {ENSEMBLE_SIZE} models with seeds: {seeds}")
+    else:
+        seeds = [RANDOM_SEED]
+    
+    # Train models
+    learners = []
+    all_validation_metrics = []
+    all_test_metrics = []
+    final_cat_names = None
+    final_cont_names = None
+    final_split_strategy = None
+    df_train_final = None
+    df_valid_final = None
+    df_test_final = None
+    
+    for i, seed in enumerate(seeds):
+        print(f"\n{'='*60}")
+        print(f"Training model {i+1}/{len(seeds)} (seed={seed})")
+        print(f"{'='*60}")
+        
+        learn, df_train, df_valid, df_test, cat_names_model, cont_names_model, splits, split_strategy_actual, dls = train_single_model(
+            df, seed, export_suffix=f"_seed{seed}" if ENSEMBLE_SIZE > 1 else ""
+        )
+        
+        # Compute metrics
+        val_metrics, test_metrics = compute_metrics(learn, df_valid, df_test, cat_names_model, cont_names_model, dls)
+        all_validation_metrics.append(val_metrics)
+        if test_metrics:
+            all_test_metrics.append(test_metrics)
+        
+        learners.append(learn)
+        if final_cat_names is None:
+            final_cat_names = cat_names_model
+            final_cont_names = cont_names_model
+            final_split_strategy = split_strategy_actual
+            df_train_final = df_train
+            df_valid_final = df_valid
+            df_test_final = df_test
+    
+    # Aggregate metrics (for ensemble, average; for single, use directly)
     def _f(x):
         return float(x) if x is not None and np.isfinite(x) else None
-
+    
+    if ENSEMBLE_SIZE > 1:
+        # Average metrics across ensemble
+        def avg_metric(key):
+            vals = [m.get(key) for m in all_validation_metrics if m.get(key) is not None]
+            return np.mean(vals) if vals else None
+        
+        validation_metrics = {
+            k: _f(avg_metric(k)) if k in ("mae", "rmse", "mape", "r2", "p95_error", "p99_error") else avg_metric(k)
+            for k in all_validation_metrics[0].keys()
+        }
+        
+        if all_test_metrics:
+            test_metrics = {
+                k: _f(avg_metric(k)) if k in ("mae", "rmse", "mape", "r2", "p95_error", "p99_error") else avg_metric(k)
+                for k in all_test_metrics[0].keys()
+            }
+        else:
+            test_metrics = None
+    else:
+        validation_metrics = {k: (_f(v) if k in ("mae", "rmse", "mape", "r2", "p95_error", "p99_error") else v) for k, v in all_validation_metrics[0].items()}
+        test_metrics = {k: (_f(v) if k in ("mae", "rmse", "mape", "r2", "p95_error", "p99_error") else v) for k, v in (all_test_metrics[0] if all_test_metrics else {}).items()} if all_test_metrics else None
+    
+    # Save metrics
     metrics = {
         "model_type": "fastai_tabular",
-        "validation": {k: (_f(v) if k in ("mae", "rmse", "mape", "r2") else v) for k, v in validation_metrics.items()},
-        "test": {k: (_f(v) if k in ("mae", "rmse", "mape", "r2") else v) for k, v in (test_metrics or {}).items()} if test_metrics else None,
-        "training_samples": int(len(df_train)),
-        "validation_samples": int(len(df_valid)),
-        "test_samples": int(len(df_test)),
-        "cat_names": cat_names,
-        "cont_names": cont_names,
+        "validation": validation_metrics,
+        "test": test_metrics if test_metrics else None,
+        "training_samples": int(len(df_train_final)),
+        "validation_samples": int(len(df_valid_final)),
+        "test_samples": int(len(df_test_final)),
+        "cat_names": final_cat_names,
+        "cont_names": final_cont_names,
         "y_name": Y_NAME,
-        "split_strategy": "random",
+        "split_strategy": final_split_strategy,
+        "loss_type": LOSS_TYPE,
+        "ensemble_size": ENSEMBLE_SIZE,
+        "ensemble_seeds": seeds if ENSEMBLE_SIZE > 1 else None,
         "trained_at": datetime.now().isoformat(),
     }
     if metrics["test"] is None:
         del metrics["test"]
+    if metrics.get("ensemble_seeds") is None:
+        del metrics["ensemble_seeds"]
 
     metrics_path = OUTPUT_DIR / "training_metrics.json"
     with open(metrics_path, "w") as f:
         json.dump(metrics, f, indent=2)
-    print(f"[OK] Saved metrics: {metrics_path}")
+    print(f"\n[OK] Saved metrics: {metrics_path}")
 
+    # Print results
     v = metrics["validation"]
     print("\n[METRICS] Validation:")
     print(f"  MAE:  ${v['mae']:,.0f}" if v.get('mae') is not None else "  MAE:  N/A")
     print(f"  RMSE: ${v['rmse']:,.0f}" if v.get('rmse') is not None else "  RMSE: N/A")
     print(f"  MAPE: {v['mape']:.1f}%" if v.get('mape') is not None else "  MAPE: N/A")
     print(f"  R2:   {v['r2']:.4f}" if v.get('r2') is not None else "  R2:   N/A")
+    print(f"  P95 Error: ${v.get('p95_error'):,.0f}" if v.get('p95_error') is not None else "  P95 Error: N/A")
+    print(f"  P99 Error: ${v.get('p99_error'):,.0f}" if v.get('p99_error') is not None else "  P99 Error: N/A")
     print(f"  Within ±10%: {v['within_10pct']:.1f}%")
     print(f"  Within ±15%: {v['within_15pct']:.1f}%")
     if metrics.get("test"):
@@ -284,18 +418,28 @@ def main():
         print(f"  MAE:  ${t['mae']:,.0f}" if t.get('mae') is not None else "  MAE:  N/A")
         print(f"  RMSE: ${t['rmse']:,.0f}" if t.get('rmse') is not None else "  RMSE: N/A")
         print(f"  R2:   {t.get('r2'):.4f}" if t.get('r2') is not None else "  R2:   N/A")
+        print(f"  P95 Error: ${t.get('p95_error'):,.0f}" if t.get('p95_error') is not None else "  P95 Error: N/A")
+        print(f"  P99 Error: ${t.get('p99_error'):,.0f}" if t.get('p99_error') is not None else "  P99 Error: N/A")
     print("\n[COMPARE] Legacy baseline: MAE ~$3,269, RMSE ~$5,165, within ±10% ~39%, ±15% ~52%.")
 
     # Config for inference (feature list)
+    if ENSEMBLE_SIZE > 1:
+        export_paths = [f"export_seed{s}.pkl" for s in seeds]
+    else:
+        export_paths = ["export.pkl"]
+    
     config = {
         "model_type": "fastai_tabular",
-        "export_path": "export.pkl",
-        "cat_names": cat_names,
-        "cont_names": cont_names,
+        "export_path": export_paths[0] if len(export_paths) == 1 else export_paths,
+        "cat_names": final_cat_names,
+        "cont_names": final_cont_names,
         "y_name": Y_NAME,
         "target_column": TARGET_COL,
         "min_price": MIN_PRICE,
         "max_price": MAX_PRICE,
+        "split_strategy": final_split_strategy,
+        "loss_type": LOSS_TYPE,
+        "ensemble_size": ENSEMBLE_SIZE,
         "trained_at": metrics["trained_at"],
     }
     config_path = OUTPUT_DIR / "model_config.json"
