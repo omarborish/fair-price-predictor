@@ -19,6 +19,12 @@ const nextConfig = {
     unoptimized: true,
   },
   
+  // Redirect old /model page to combined /methodology page
+  async redirects() {
+    return [
+      { source: '/model', destination: '/methodology', permanent: true },
+    ];
+  },
   // API rewrites for development
   async rewrites() {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';

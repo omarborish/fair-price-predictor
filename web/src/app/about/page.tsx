@@ -252,7 +252,7 @@ export default function AboutPage() {
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              href="/model"
+              href="/methodology"
               className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 text-white font-medium rounded-lg hover:bg-white/20 transition-colors"
             >
               See How It Works
