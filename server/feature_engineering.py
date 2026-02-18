@@ -89,3 +89,47 @@ def ensure_region(df: pd.DataFrame, region_col: str = "region", state_col: str =
     else:
         df[region_col] = df[region_col].fillna("unknown").astype(str).str.lower().str.strip()
     return df
+
+
+def add_time_features(
+    df: pd.DataFrame,
+    posting_date_col: str = "posting_date",
+    now: datetime | None = None,
+) -> pd.DataFrame:
+    """Add posting_month and posting_year. Training uses posting_date; inference defaults to now."""
+    df = df.copy()
+    if now is None:
+        now = datetime.now()
+    if posting_date_col in df.columns:
+        dt = pd.to_datetime(df[posting_date_col], errors="coerce")
+    else:
+        dt = pd.Series([pd.Timestamp(now)] * len(df), index=df.index)
+    dt = dt.fillna(pd.Timestamp(now))
+    df["posting_year"] = dt.dt.year.astype("int32")
+    df["posting_month"] = dt.dt.month.astype("int32")
+    return df
+
+
+def add_buckets(df: pd.DataFrame) -> pd.DataFrame:
+    """Bucket car_age into categorical bins (non-linear depreciation regimes)."""
+    df = df.copy()
+    if "car_age" not in df.columns:
+        return df
+    bins = [-1, 2, 5, 10, 15, 25, 100]
+    labels = ["0-2", "3-5", "6-10", "11-15", "16-25", "26+"]
+    df["car_age_bucket"] = pd.cut(
+        df["car_age"].clip(lower=0),
+        bins=bins,
+        labels=labels,
+    ).astype(str)
+    return df
+
+
+def add_more_cont_features(df: pd.DataFrame) -> pd.DataFrame:
+    """Add log_miles_per_year and age_sq (inference-safe from existing columns)."""
+    df = df.copy()
+    if "miles_per_year" in df.columns:
+        df["log_miles_per_year"] = np.log1p(df["miles_per_year"].clip(lower=0)).astype("float32")
+    if "car_age" in df.columns:
+        df["age_sq"] = (df["car_age"].clip(lower=0) ** 2).astype("float32")
+    return df
