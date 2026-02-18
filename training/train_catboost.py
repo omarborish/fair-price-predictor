@@ -60,20 +60,40 @@ def prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if "posting_date" in df.columns:
         df = df.drop(columns=["posting_date"])
     # dealer_score from saved classifier (optional)
-    dealer_path = OUTPUT_DIR / "dealer_clf.cbm"
-    if dealer_path.exists():
+    dealer_cbm = OUTPUT_DIR / "dealer_clf.cbm"
+    dealer_joblib = OUTPUT_DIR / "dealer_clf.joblib"
+    cfg_path = OUTPUT_DIR / "dealer_clf_config.json"
+    cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
+    feat_cols = cfg.get("feature_cols", [c for c in CAT_COLS + CONT_COLS if c in df.columns and c != "dealer_score"])
+    if dealer_cbm.exists():
         try:
             from catboost import CatBoostClassifier
             clf = CatBoostClassifier()
-            clf.load_model(str(dealer_path))
-            cfg_path = OUTPUT_DIR / "dealer_clf_config.json"
-            cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
-            feat_cols = cfg.get("feature_cols", [c for c in CAT_COLS + CONT_COLS if c in df.columns and c != "dealer_score"])
+            clf.load_model(str(dealer_cbm))
             Xd = df.reindex(columns=feat_cols, fill_value=0)
             for c in cfg.get("cat_cols", []):
                 if c in Xd.columns and Xd[c].dtype != object:
                     Xd[c] = Xd[c].astype(str).replace("0", "unknown")
             df["dealer_score"] = clf.predict_proba(Xd)[:, 1]
+        except Exception:
+            df["dealer_score"] = 0.0
+    elif dealer_joblib.exists():
+        try:
+            import joblib
+            data = joblib.load(dealer_joblib)
+            transformer, clf = data.get("transformer"), data.get("clf")
+            if transformer is not None and clf is not None:
+                Xd = df.reindex(columns=feat_cols, fill_value=0).copy()
+                for c in cfg.get("cat_cols", []):
+                    if c in Xd.columns:
+                        Xd[c] = Xd[c].fillna("unknown").astype(str).replace("", "unknown")
+                for c in cfg.get("cont_cols", []):
+                    if c in Xd.columns:
+                        Xd[c] = pd.to_numeric(Xd[c], errors="coerce").fillna(0)
+                Xt = transformer.transform(Xd)
+                df["dealer_score"] = clf.predict_proba(Xt)[:, 1]
+            else:
+                df["dealer_score"] = 0.0
         except Exception:
             df["dealer_score"] = 0.0
     else:
@@ -110,6 +130,13 @@ def main():
     feature_cols = cat_cols + cont_cols
 
     X = df[feature_cols].copy()
+    # CatBoost requires cat features to be string or int; NaN must be converted to string
+    for c in cat_cols:
+        if c in X.columns:
+            X[c] = X[c].fillna("unknown").astype(str).replace("nan", "unknown")
+    for c in cont_cols:
+        if c in X.columns:
+            X[c] = pd.to_numeric(X[c], errors="coerce").fillna(0)
     y = df[Y_NAME].values
 
     # Align index: split indices are from the same df (after prepare_dataframe)

@@ -31,7 +31,7 @@ RANDOM_SEED = 42
 
 # Weak-label rules: description contains any of these -> is_dealer_weak = 1
 DEALER_KEYWORDS = re.compile(
-    r"\b(dealer|financing|warranty|call today|open (seven|7) days|trade.?in|we finance|no credit|bad credit|in.?house)\b",
+    r"\b(dealer|financing|warranty|call today|open (?:seven|7) days|trade.?in|we finance|no credit|bad credit|in.?house)\b",
     re.I,
 )
 
@@ -133,6 +133,8 @@ def main():
         import joblib
         out_path = OUTPUT_DIR / "dealer_clf.joblib"
         joblib.dump({"clf": clf, "transformer": ct, "cat_cols": cat_cols, "cont_cols": cont_cols}, out_path)
+        meta = {"cat_cols": cat_cols, "cont_cols": cont_cols, "feature_cols": feature_cols}
+        (OUTPUT_DIR / "dealer_clf_config.json").write_text(json.dumps(meta, indent=2))
         print(f"[OK] Saved {out_path} (sklearn)")
 
 

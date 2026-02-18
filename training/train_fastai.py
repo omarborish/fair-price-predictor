@@ -540,11 +540,14 @@ def main():
     else:
         export_paths = ["export.pkl"]
     
+    # Base names exclude FillMissing _na columns (input schema for evaluate_blend / inference)
+    base_cat_names = [c for c in final_cat_names if not c.endswith("_na")]
+    base_cont_names = [c for c in final_cont_names if not c.endswith("_na")]
     config = {
         "model_type": "fastai_tabular",
         "export_path": export_paths[0] if len(export_paths) == 1 else export_paths,
-        "base_cat_names": final_cat_names,
-        "base_cont_names": final_cont_names,
+        "base_cat_names": base_cat_names,
+        "base_cont_names": base_cont_names,
         "cat_names": final_cat_names,
         "cont_names": final_cont_names,
         "y_name": Y_NAME,

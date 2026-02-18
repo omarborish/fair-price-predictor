@@ -231,7 +231,7 @@ def main():
             cb = CatBoostRegressor()
             cb.load_model(str(cb_path))
             cb_cfg = json.loads(cb_config_path.read_text()) if cb_config_path.exists() else {}
-            feat_cols = cb_cfg.get("feature_cols", [c for c in cat_names + cont_names if c in df_test.columns and not c.endswith("_na")])
+            feat_cols = cb_cfg.get("feature_cols", [c for c in base_cat + base_cont if c in df_test.columns])
             cat_cols_cb = cb_cfg.get("cat_cols", [])
             X_test = df_test[feat_cols].copy()
             for c in cat_cols_cb:
@@ -298,6 +298,21 @@ def main():
     if metrics_path.exists():
         with open(metrics_path) as f:
             out = json.load(f)
+    # Optional: include per-model test metrics in saved artifact
+    if fa_m is not None:
+        out["fastai_test"] = fa_m
+    if cb_m is not None:
+        out["catboost_test"] = cb_m
+        # Also store CatBoost training time if available
+        cb_cfg_path = OUTPUT_DIR / "catboost_config.json"
+        if cb_cfg_path.exists():
+            try:
+                cb_cfg = json.loads(cb_cfg_path.read_text())
+                if "trained_seconds" in cb_cfg:
+                    out["catboost_training_seconds"] = cb_cfg["trained_seconds"]
+            except Exception:
+                pass
+
     blend_save = {
         "model_type": "blend",
         "w_fastai": w_fa,
