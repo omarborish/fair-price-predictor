@@ -2,8 +2,10 @@
 Smoke tests for model loading and prediction.
 Tests that models load correctly and produce valid predictions.
 """
+import json
 import sys
 from pathlib import Path
+from datetime import datetime
 
 # Add repo root to path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -13,26 +15,63 @@ import numpy as np
 import pandas as pd
 
 
+def _build_fastai_feature_df(sample_data: dict) -> pd.DataFrame:
+    """
+    Build a 1-row DataFrame with the same feature engineering as training/inference.
+    Only base feature columns are passed into FastAI; FillMissing proc creates *_na.
+    """
+    from server.feature_engineering import (
+        add_engineered_features,
+        ensure_region,
+        add_time_features,
+        add_buckets,
+        add_more_cont_features,
+    )
+
+    df = pd.DataFrame([sample_data])
+    df = ensure_region(df, region_col="region", state_col="state")
+    df = add_engineered_features(df, year_col="year", odometer_col="odometer")
+    df = add_time_features(df, posting_date_col="posting_date", now=datetime.now())
+    df = add_buckets(df)
+    df = add_more_cont_features(df)
+    if "posting_date" in df.columns:
+        df = df.drop(columns=["posting_date"])
+    if "dealer_score" not in df.columns:
+        df["dealer_score"] = 0.0
+
+    cfg_path = REPO_ROOT / "server" / "models" / "model_config.json"
+    cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
+    base_cat = cfg.get("base_cat_names") or [c for c in cfg.get("cat_names", []) if not str(c).endswith("_na")]
+    base_cont = cfg.get("base_cont_names") or [c for c in cfg.get("cont_names", []) if not str(c).endswith("_na")]
+
+    df = df.reindex(columns=base_cat + base_cont)
+    for c in base_cat:
+        if c in df.columns:
+            df[c] = df[c].astype("object")
+    for c in base_cont:
+        if c in df.columns:
+            df[c] = pd.to_numeric(df[c], errors="coerce")
+    return df
+
+
 def test_fastai_model_loading():
     """Test that FastAI model loads and predicts."""
     try:
         from fastai.learner import load_learner  # type: ignore[reportMissingImports]
     except ImportError:
         print("[SKIP] FastAI not installed")
-        return True
+        return
     
     model_path = REPO_ROOT / "server" / "models" / "export.pkl"
     if not model_path.exists():
         print(f"[SKIP] Model not found: {model_path}")
-        return True
+        return
     
     print(f"Loading model from {model_path}...")
     learn = load_learner(model_path)
     print("[OK] Model loaded successfully")
     
     # Test prediction with sample data
-    from server.feature_engineering import add_engineered_features, ensure_region
-    
     sample_data = {
         "year": 2020,
         "odometer": 50000,
@@ -49,17 +88,10 @@ def test_fastai_model_loading():
         "cylinders": "4",
         "title_status": "clean",
     }
-    
-    df = pd.DataFrame([sample_data])
-    df = ensure_region(df, region_col="region", state_col="state")
-    df = add_engineered_features(df, year_col="year", odometer_col="odometer")
-    
-    # Get feature lists from model
-    cat_names = learn.dls.cat_names
-    cont_names = learn.dls.cont_names
-    
-    # Predict via test_dl (reliable tensor output; predict(row) can return TabularPandas)
-    test_dl = learn.dls.test_dl(df[cat_names + cont_names])
+
+    df = _build_fastai_feature_df(sample_data)
+    # Predict via test_dl (reliable tensor output; ensures same preprocessing as training)
+    test_dl = learn.dls.test_dl(df, bs=1, num_workers=0)
     preds, _ = learn.get_preds(dl=test_dl)
     pred_log = float(preds[0].item() if hasattr(preds[0], 'item') else float(preds[0]))
     predicted_price = float(np.expm1(pred_log))
@@ -69,7 +101,6 @@ def test_fastai_model_loading():
     assert predicted_price < 1_000_000, f"Prediction seems unreasonably high: {predicted_price}"
     
     print(f"[OK] Prediction successful: ${predicted_price:,.0f}")
-    return True
 
 
 def test_fastai_ensemble_loading():
@@ -78,13 +109,12 @@ def test_fastai_ensemble_loading():
         from fastai.learner import load_learner  # type: ignore[reportMissingImports]
     except ImportError:
         print("[SKIP] FastAI not installed")
-        return True
+        return
     
-    import json
     config_path = REPO_ROOT / "server" / "models" / "model_config.json"
     if not config_path.exists():
         print(f"[SKIP] Config not found: {config_path}")
-        return True
+        return
     
     with open(config_path) as f:
         cfg = json.load(f)
@@ -92,7 +122,7 @@ def test_fastai_ensemble_loading():
     ensemble_size = cfg.get("ensemble_size", 1)
     if ensemble_size <= 1:
         print("[SKIP] Not an ensemble model")
-        return True
+        return
     
     export_paths = cfg.get("export_path", [])
     if isinstance(export_paths, str):
@@ -111,7 +141,6 @@ def test_fastai_ensemble_loading():
     
     assert len(learners) > 0, "No ensemble models loaded"
     print(f"[OK] Ensemble loaded: {len(learners)} models")
-    return True
 
 
 def test_prediction_without_region():
@@ -120,16 +149,14 @@ def test_prediction_without_region():
         from fastai.learner import load_learner  # type: ignore[reportMissingImports]
     except ImportError:
         print("[SKIP] FastAI not installed")
-        return True
+        return
     
     model_path = REPO_ROOT / "server" / "models" / "export.pkl"
     if not model_path.exists():
         print(f"[SKIP] Model not found: {model_path}")
-        return True
+        return
     
     learn = load_learner(model_path)
-    
-    from server.feature_engineering import add_engineered_features, ensure_region
     
     # Sample without region
     sample_data = {
@@ -147,15 +174,9 @@ def test_prediction_without_region():
         "cylinders": "4",
         "title_status": "clean",
     }
-    
-    df = pd.DataFrame([sample_data])
-    df = ensure_region(df, region_col="region", state_col="state")
-    df = add_engineered_features(df, year_col="year", odometer_col="odometer")
-    
-    cat_names = learn.dls.cat_names
-    cont_names = learn.dls.cont_names
-    
-    test_dl = learn.dls.test_dl(df[cat_names + cont_names])
+
+    df = _build_fastai_feature_df(sample_data)
+    test_dl = learn.dls.test_dl(df, bs=1, num_workers=0)
     preds, _ = learn.get_preds(dl=test_dl)
     pred_log = float(preds[0].item() if hasattr(preds[0], 'item') else float(preds[0]))
     predicted_price = float(np.expm1(pred_log))
@@ -164,7 +185,7 @@ def test_prediction_without_region():
     assert predicted_price > 0, f"Prediction is not positive: {predicted_price}"
     
     print(f"[OK] Prediction without region successful: ${predicted_price:,.0f}")
-    return True
+    return
 
 
 def main():
