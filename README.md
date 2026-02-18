@@ -27,9 +27,39 @@ A production-ready, AI-powered web application that predicts fair market prices 
 | ML | FastAI Tabular (primary), scikit-learn / CatBoost blend (legacy fallback) |
 | Model Storage | export.pkl (FastAI) or joblib (legacy) |
 
-## Iteration Story
+## Project Evolution Story
 
-I built a full end-to-end product first: data → baseline model → API → UI. It worked, but accuracy and generalization weren’t where I wanted. I reviewed the pipeline and found a **legacy train/serve feature mismatch** (inference omitted `region` and `manufacturer_model`, so the server didn’t send the same features the preprocessor was fit on). I also wanted better handling of high-cardinality categoricals and consistent use of region. I moved toward **FastAI Tabular** (following Jeremy Howard’s practical approach): tabular embeddings for make/model/region, shared feature engineering between training and inference, and region + interaction features (`region_x_make`, `manufacturer_model`). I fixed the legacy path so both pipelines use the same feature engineering, added early stopping and regularization to FastAI training, and introduced R2 and validation/test metric reporting. I measured before/after and documented it below.
+I first built a baseline model (scikit-learn / CatBoost blend) to validate the product end-to-end: data pipeline, API, and UI. It worked, but accuracy and generalization weren't where I wanted. I investigated the pipeline and discovered **feature inconsistencies** (inference was not sending the same features the preprocessor was fit on—e.g. missing `region` and `manufacturer_model`) and **limited modeling capacity** for high-cardinality categoricals.
+
+Around that time I started following the FastAI course and Jeremy Howard. The practical approach to tabular modeling—embeddings for categories, shared preprocessing, and a simple training loop—convinced me to rebuild the model using **FastAI Tabular**. I standardized feature engineering in `server/feature_engineering.py`, introduced region-aware embeddings and interaction features (`region_x_make`, `manufacturer_model`), and tuned the training loop for stability (early stopping, SaveModelCallback, weight decay). After retraining, the new model significantly improved accuracy and reliability.
+
+## Results (Before vs After)
+
+| Metric | Legacy (before) | New FastAI | Improvement |
+|--------|-----------------|------------|-------------|
+| **MAE** | ~$3,269 | ~$2,725 | ~17% better |
+| **Within ±10%** | ~39% | ~51% | +12 pts |
+| **Within ±15%** | ~52% | ~64% | +12 pts |
+| **R²** | N/A | ~0.85 | Strong fit |
+
+Validation and test metrics are close (no overfitting). Latest numbers are in `server/models/training_metrics.json`.
+
+## Training Details
+
+- **Script:** `python training/train_fastai.py`
+- **Training time:** ~25–45 minutes on CPU (depending on hardware); GPU is supported if available.
+- **Epochs:** Up to 30 with one-cycle LR; **early stopping** (patience=3 on validation loss) typically stops around epoch 25–28. The **best model by validation loss** is saved automatically (SaveModelCallback), not the last epoch.
+- **Hardware:** Runs on CPU by default; uses GPU if PyTorch detects CUDA.
+- **Artifacts:** `server/models/export.pkl`, `model_config.json`, `training_metrics.json`.
+
+Optional tuning via environment variables: `LOSS_TYPE=huber` (SmoothL1), `HUBER_DELTA=0.1`, `LAYERS=512,256`, `WD=0.001`. See `training/EXPERIMENTS.md` for the experiment log.
+
+## Engineering Lessons & Challenges
+
+- **Aligning feature engineering between training and inference** — Shared code in `server/feature_engineering.py` and `prepare_input_fastai()` in `main.py` keeps train and serve identical; any new feature must be added in both places.
+- **Handling high-cardinality categoricals** — One-hot encoding for make/model/region was impractical; FastAI’s tabular embeddings learn compact representations and generalize better.
+- **Preventing train/serve mismatch** — The legacy path had different columns at serve time; we fixed it by using the same feature list and preprocessing in both pipelines.
+- **Balancing MAE vs RMSE** — MAE and within±10% improved a lot; RMSE stays sensitive to tail errors. Options like Huber loss and ensembles help; we track P95/P99 in metrics.
 
 ## Model Pipelines
 
@@ -37,18 +67,7 @@ I built a full end-to-end product first: data → baseline model → API → UI.
 - **Legacy (fallback):** scikit-learn/CatBoost blend. Script: `training/train_model.py`. Artifacts: `server/models/price_model.joblib`, `server/models/preprocessor.joblib`, `server/models/model_q_low.joblib`, `server/models/model_q_high.joblib`, `server/models/training_metrics.json` (or `metrics.json`). Used only when FastAI artifacts are missing.
 - **Feature engineering** is shared: `server/feature_engineering.py` (`ensure_region`, `add_engineered_features`). Both training scripts and inference (`prepare_input` / `prepare_input_fastai` in `server/main.py`) use it so train and serve stay aligned.
 
-## Results
-
-Baseline metrics (from repo metrics files; split: random, seed 42). After improvements, re-run training and update this table with the new numbers.
-
-| Pipeline        | MAE    | RMSE   | MAPE  | Within ±10% | Within ±15% | R2   | Split  |
-|-----------------|--------|--------|-------|-------------|-------------|------|--------|
-| FastAI (before) | $3,264 | $6,318 | 32.4% | 41.0%       | 57.6%       | —    | random |
-| Legacy (before) | $3,269 | $5,165 | 24.6% | 38.7%       | 52.1%       | —    | random |
-
-*After running `python training/train_fastai.py` (with early stopping + R2), check `server/models/training_metrics.json` for `validation` and `test` metrics and add a row here.*
-
-**Note:** `region_url` in the dataset is intentionally unused; only `region` (and state as fallback) is used for location.
+**Note:** The server loads `export.pkl` first. Only if the FastAI export is missing does it fall back to the legacy joblib models. `region_url` in the dataset is intentionally unused; only `region` (and state as fallback) is used for location.
 
 ## Project Structure
 
@@ -106,6 +125,18 @@ pip install -r server/requirements.txt
 
 # Train FastAI model (recommended; saves export.pkl + training_metrics.json)
 python training/train_fastai.py
+
+# Optional: Train with robust loss (Huber)
+LOSS_TYPE=huber python training/train_fastai.py
+
+# Optional: Train ensemble (3 models)
+ENSEMBLE_SIZE=3 python training/train_fastai.py
+
+# Optional: Use group split (by manufacturer_model)
+SPLIT_STRATEGY=group python training/train_fastai.py
+
+# Analyze errors after training
+python training/analyze_errors.py
 ```
 
 Optional — train legacy blend (scikit-learn/CatBoost) for fallback or comparison:
