@@ -427,20 +427,31 @@ def load_models():
         ensemble_config = {"type": "none"}
 
     # Dealer classifier (for dealer_score feature; optional)
-    dealer_path = MODELS_DIR / "dealer_clf.cbm"
+    dealer_cbm = MODELS_DIR / "dealer_clf.cbm"
+    dealer_joblib = MODELS_DIR / "dealer_clf.joblib"
     dealer_cfg_path = MODELS_DIR / "dealer_clf_config.json"
-    if dealer_path.exists():
+    dealer_clf_config = json.loads(dealer_cfg_path.read_text()) if dealer_cfg_path.exists() else {}
+    if dealer_cbm.exists():
         try:
             from catboost import CatBoostClassifier
             dealer_clf = CatBoostClassifier()
-            dealer_clf.load_model(str(dealer_path))
-            if dealer_cfg_path.exists():
-                dealer_clf_config = json.loads(dealer_cfg_path.read_text())
-            else:
-                dealer_clf_config = {}
-            print("[OK] Loaded dealer classifier for dealer_score")
+            dealer_clf.load_model(str(dealer_cbm))
+            print("[OK] Loaded dealer classifier (CatBoost) for dealer_score")
         except Exception as e:
             print(f"[WARN] Dealer classifier load failed: {e}")
+            dealer_clf = None
+            dealer_clf_config = {}
+    elif dealer_joblib.exists():
+        try:
+            dealer_clf = joblib.load(dealer_joblib)  # dict with clf, transformer, cat_cols, cont_cols
+            if not dealer_clf_config and isinstance(dealer_clf, dict):
+                dealer_clf_config = {
+                    "feature_cols": dealer_clf.get("cat_cols", []) + dealer_clf.get("cont_cols", []),
+                    "cat_cols": dealer_clf.get("cat_cols", []),
+                }
+            print("[OK] Loaded dealer classifier (sklearn) for dealer_score")
+        except Exception as e:
+            print(f"[WARN] Dealer .joblib load failed: {e}")
             dealer_clf = None
             dealer_clf_config = {}
     else:
@@ -469,6 +480,16 @@ def load_models():
         print(f"[OK] Loaded vehicle options ({vehicle_options.get('metadata', {}).get('total_makes', 0)} makes, {vehicle_options.get('metadata', {}).get('total_models', 0)} models)")
     else:
         print(f"[WARN] Vehicle options not found at {vehicle_options_path}")
+
+    # Startup summary for production ensemble
+    if fastai_learner is not None:
+        print("Loaded FastAI export.pkl")
+    if catboost_model is not None:
+        print("Loaded CatBoost model")
+    if fastai_learner is not None and catboost_model is not None and ensemble_config.get("type") == "blend":
+        w_fa = ensemble_config.get("w_fastai", 0.6)
+        w_cb = ensemble_config.get("w_catboost", 0.4)
+        print(f"Ensemble enabled: w_fastai={w_fa} w_catboost={w_cb}")
     
     return models, preprocessor
 
@@ -537,8 +558,13 @@ def prepare_input_fastai(car: CarDetails) -> pd.DataFrame:
             for c in dealer_clf_config.get("cat_cols", []):
                 if c in d_df.columns and d_df[c].dtype != object and str(d_df[c].dtype) != "category":
                     d_df[c] = d_df[c].astype(str).replace("0", "unknown")
-            proba = dealer_clf.predict_proba(d_df)
-            dealer_score = float(proba[0][1]) if proba.shape[1] > 1 else 0.0
+            if isinstance(dealer_clf, dict):
+                # sklearn joblib: transformer + clf
+                Xt = dealer_clf["transformer"].transform(d_df)
+                proba = dealer_clf["clf"].predict_proba(Xt)
+            else:
+                proba = dealer_clf.predict_proba(d_df)
+            dealer_score = float(proba[0][1]) if (hasattr(proba, "shape") and proba.shape[1] > 1) else 0.0
         except Exception:
             dealer_score = 0.0
     else:
@@ -1132,23 +1158,52 @@ async def get_metrics():
 
 @app.get("/model_info")
 async def get_model_info():
-    """Get model config + training metrics for website (model type, key metrics, training time)."""
+    """Get model type, weights, and latest metrics for the website (model update panel)."""
     config_path = MODELS_DIR / "model_config.json"
     metrics_path = MODELS_DIR / "training_metrics.json"
     if not metrics_path.exists():
         metrics_path = MODELS_DIR / "metrics.json"
-    out = {}
+    model_config = {}
+    training_metrics = {}
     if config_path.exists():
         with open(config_path) as f:
-            out["model_config"] = json.load(f)
-    else:
-        out["model_config"] = {}
+            model_config = json.load(f)
     if metrics_path.exists():
         with open(metrics_path) as f:
-            out["training_metrics"] = json.load(f)
+            training_metrics = json.load(f)
+
+    # Build website-friendly response: model_type, weights, metrics, trained_at, training_time
+    blend = training_metrics.get("blend_evaluation") or {}
+    test_metrics = blend.get("test") or training_metrics.get("validation") or {}
+    training_seconds = training_metrics.get("training_seconds") or blend.get("training_time_seconds")
+    trained_at = model_config.get("trained_at") or blend.get("evaluated_at") or training_metrics.get("trained_at", "")
+
+    if catboost_model is not None and ensemble_config.get("type") == "blend":
+        model_type = "fastai+catboost_blend"
+        weights = {
+            "fastai": float(ensemble_config.get("w_fastai", 0.6)),
+            "catboost": float(ensemble_config.get("w_catboost", 0.4)),
+        }
     else:
-        out["training_metrics"] = {}
-    return out
+        model_type = "fastai_tabular" if fastai_learner is not None else "legacy"
+        weights = {"fastai": 1.0, "catboost": 0.0} if fastai_learner else {}
+
+    return {
+        "model_type": model_type,
+        "weights": weights,
+        "metrics": {
+            "mae": test_metrics.get("mae"),
+            "rmse": test_metrics.get("rmse"),
+            "within_10pct": test_metrics.get("within_10pct"),
+            "within_15pct": test_metrics.get("within_15pct"),
+            "r2": test_metrics.get("r2"),
+            "p95_abs_error": test_metrics.get("p95_abs_error"),
+            "p99_abs_error": test_metrics.get("p99_abs_error"),
+        },
+        "trained_at": trained_at,
+        "training_time_seconds": training_seconds,
+        "training_time": f"{int(training_seconds) // 60} min" if isinstance(training_seconds, (int, float)) else None,
+    }
 
 
 if __name__ == "__main__":
