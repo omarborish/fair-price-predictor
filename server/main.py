@@ -241,38 +241,107 @@ config = {}
 comparables_df = None
 feature_importance = {}
 vehicle_options = {}  # For dependent dropdowns
-fastai_learner = None  # FastAI TabularLearner when export.pkl is used
+fastai_learner = None  # FastAI TabularLearner when export.pkl is used (single model)
+fastai_learners = []  # List of FastAI learners for ensemble
 fastai_config = {}  # cat_names, cont_names, y_name from model_config.json when using FastAI
 
 
 def load_models():
     """Load all trained models and data."""
-    global models, preprocessor, config, comparables_df, feature_importance, fastai_learner, fastai_config
+    global models, preprocessor, config, comparables_df, feature_importance, fastai_learner, fastai_learners, fastai_config
     
     print("Loading models...")
     
     # Try FastAI export first (same preprocessing at serve time)
-    export_path = MODELS_DIR / "export.pkl"
     config_path = MODELS_DIR / "model_config.json"
-    if export_path.exists() and config_path.exists():
-        try:
-            from fastai.learner import load_learner
-            fastai_learner = load_learner(export_path)
-            with open(config_path) as f:
-                cfg = json.load(f)
-            if cfg.get("model_type") == "fastai_tabular":
-                fastai_config["cat_names"] = cfg.get("cat_names", [])
-                fastai_config["cont_names"] = cfg.get("cont_names", [])
-                fastai_config["y_name"] = cfg.get("y_name", "log_price")
-                fastai_config["target_column"] = cfg.get("target_column", "price")
-                print(f"[OK] Loaded FastAI Tabular learner from {export_path}")
-        except Exception as e:
-            print(f"[WARN] FastAI export load failed: {e}")
+    if config_path.exists():
+        with open(config_path) as f:
+            cfg = json.load(f)
+        
+        ensemble_size = cfg.get("ensemble_size", 1)
+        export_paths = cfg.get("export_path", [])
+        
+        # Handle both single model (string) and ensemble (list) formats
+        if isinstance(export_paths, str):
+            export_paths = [export_paths]
+        elif not isinstance(export_paths, list):
+            export_paths = ["export.pkl"]  # fallback
+        
+        if cfg.get("model_type") == "fastai_tabular":
+            try:
+                from fastai.learner import load_learner
+                
+                # Load ensemble models if available
+                if ensemble_size > 1:
+                    fastai_learners = []
+                    for i, path in enumerate(export_paths):
+                        full_path = MODELS_DIR / path
+                        if full_path.exists():
+                            learner = load_learner(full_path)
+                            fastai_learners.append(learner)
+                            print(f"[OK] Loaded FastAI ensemble model {i+1}/{len(export_paths)}: {path}")
+                        else:
+                            print(f"[WARN] Ensemble model not found: {full_path}")
+                    
+                    if fastai_learners:
+                        fastai_learner = fastai_learners[0]  # Keep first for compatibility
+                        fastai_config["cat_names"] = cfg.get("cat_names", [])
+                        fastai_config["cont_names"] = cfg.get("cont_names", [])
+                        fastai_config["y_name"] = cfg.get("y_name", "log_price")
+                        fastai_config["target_column"] = cfg.get("target_column", "price")
+                        fastai_config["ensemble_size"] = len(fastai_learners)
+                        print(f"[OK] Loaded FastAI ensemble ({len(fastai_learners)} models)")
+                        logger.info("Using FastAI tabular model for prediction (ensemble)")
+                    else:
+                        fastai_learner = None
+                        fastai_learners = []
+                        fastai_config.clear()
+                else:
+                    # Single model
+                    export_path = MODELS_DIR / export_paths[0]
+                    if export_path.exists():
+                        fastai_learner = load_learner(export_path)
+                        fastai_learners = []
+                        fastai_config["cat_names"] = cfg.get("cat_names", [])
+                        fastai_config["cont_names"] = cfg.get("cont_names", [])
+                        fastai_config["y_name"] = cfg.get("y_name", "log_price")
+                        fastai_config["target_column"] = cfg.get("target_column", "price")
+                        fastai_config["ensemble_size"] = 1
+                        print(f"[OK] Loaded FastAI Tabular learner from {export_path}")
+                        logger.info("Using FastAI tabular model for prediction")
+                    else:
+                        fastai_learner = None
+                        fastai_learners = []
+                        fastai_config.clear()
+            except Exception as e:
+                print(f"[WARN] FastAI export load failed: {e}")
+                fastai_learner = None
+                fastai_learners = []
+                fastai_config.clear()
+        else:
             fastai_learner = None
+            fastai_learners = []
             fastai_config.clear()
     else:
-        fastai_learner = None
-        fastai_config.clear()
+        # Fallback: try single export.pkl
+        export_path = MODELS_DIR / "export.pkl"
+        if export_path.exists():
+            try:
+                from fastai.learner import load_learner
+                fastai_learner = load_learner(export_path)
+                fastai_learners = []
+                fastai_config["ensemble_size"] = 1
+                print(f"[OK] Loaded FastAI Tabular learner from {export_path} (no config)")
+                logger.info("Using FastAI tabular model for prediction")
+            except Exception as e:
+                print(f"[WARN] FastAI export load failed: {e}")
+                fastai_learner = None
+                fastai_learners = []
+                fastai_config.clear()
+        else:
+            fastai_learner = None
+            fastai_learners = []
+            fastai_config.clear()
     
     # Load preprocessor (MUST be loaded for prediction when not using FastAI)
     preprocessor_path = MODELS_DIR / "preprocessor.joblib"
@@ -663,6 +732,7 @@ async def health():
         "status": "healthy",
         "models_loaded": len(models),
         "use_fastai": fastai_learner is not None,
+        "ensemble_size": fastai_config.get("ensemble_size", 1) if fastai_learner else 0,
         "comparables_count": len(comparables_df) if comparables_df is not None else 0
     }
 
@@ -818,9 +888,20 @@ async def predict_price(request: Request, car: CarDetails):
         if use_fastai:
             input_df = prepare_input_fastai(car)
             row = input_df.iloc[0]
-            pred_result = fastai_learner.predict(row)
-            # TabularLearner regression: pred_result is (dec_pred_tensor,) or (pred_val,)
-            pred_log = float(pred_result[0].item() if hasattr(pred_result[0], 'item') else pred_result[0])
+            
+            # Ensemble prediction: average across models
+            if fastai_learners and len(fastai_learners) > 1:
+                pred_logs = []
+                for learner in fastai_learners:
+                    pred_result = learner.predict(row)
+                    pred_log = float(pred_result[0].item() if hasattr(pred_result[0], 'item') else pred_result[0])
+                    pred_logs.append(pred_log)
+                pred_log = float(np.mean(pred_logs))
+            else:
+                # Single model
+                pred_result = fastai_learner.predict(row)
+                pred_log = float(pred_result[0].item() if hasattr(pred_result[0], 'item') else pred_result[0])
+            
             predicted_price = float(np.expm1(pred_log))
             price_low = predicted_price * 0.85
             price_high = predicted_price * 1.15
