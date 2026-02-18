@@ -514,8 +514,13 @@ def main():
     df = sanitize_prices(df, TARGET_COL)
     df = make_features(df)
 
-    # Drop columns not used as features (match train_fastai; region_url/description unused by design)
-    drop_cols = [c for c in ["id", "vin", "url", "posting_date", "removed", "image_url", "description", "region_url"] if c in df.columns]
+    # Drop columns not used as features: (1) not in API at inference; (2) match train_fastai.
+    # Dropping size, county, lat, long ensures legacy preprocessor is fit only on columns
+    # that server/main.py prepare_input() sends (no train/serve mismatch).
+    drop_cols = [c for c in [
+        "id", "vin", "url", "posting_date", "removed", "image_url", "description", "region_url",
+        "size", "county", "lat", "long",
+    ] if c in df.columns]
     if drop_cols:
         df = df.drop(columns=drop_cols)
 

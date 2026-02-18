@@ -1,21 +1,34 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Car, TrendingUp, Shield, AlertCircle, Database, 
-  ArrowRight, BarChart3, Gauge, BookOpen, CheckCircle2
+  ArrowRight, BarChart3, Gauge, BookOpen, CheckCircle2,
+  ChevronDown, ChevronUp
 } from 'lucide-react';
 import { PredictorForm } from '@/components/PredictorForm';
 import { PredictionResult } from '@/components/PredictionResult';
-import { CarDetails, PredictionResponse, predictPrice } from '@/lib/api';
+import { CarDetails, PredictionResponse, predictPrice, getModelInfo, ModelInfo } from '@/lib/api';
+
+const LEGACY_MAE = 3269;
+const LEGACY_WITHIN_10 = 39;
+const LEGACY_WITHIN_15 = 52;
 
 export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [carDetails, setCarDetails] = useState<CarDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [modelInfo, setModelInfo] = useState<ModelInfo | null>(null);
+  const [showEngineeringNotes, setShowEngineeringNotes] = useState(false);
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    getModelInfo()
+      .then(setModelInfo)
+      .catch(() => setModelInfo(null));
+  }, []);
 
   const handleSubmit = async (details: CarDetails) => {
     setIsLoading(true);
@@ -159,32 +172,75 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Model Update - Accuracy improvements */}
+          {/* Model Update / Accuracy panel - fetches /model_info */}
           <div className="mt-12 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 p-6">
             <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-3">
-              Model Update
+              Model Update &amp; Accuracy
             </h3>
-            <p className="text-slate-600 dark:text-slate-400 text-sm mb-4">
-              Predictions are now powered by a <strong>FastAI Tabular</strong> neural network with region-aware embeddings and interaction features (make×model, region×make) for improved accuracy.
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+            <ul className="text-slate-600 dark:text-slate-400 text-sm mb-4 space-y-1">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                FastAI Tabular for embeddings and nonlinear interactions
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                CatBoost for strong categorical handling
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                Blended in log-space for stability (0.6 FastAI + 0.4 CatBoost)
+              </li>
+            </ul>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm mb-4">
               <div>
-                <p className="text-slate-500 dark:text-slate-400">MAE vs previous</p>
-                <p className="font-semibold text-slate-900 dark:text-white">~17% better</p>
+                <p className="text-slate-500 dark:text-slate-400">MAE</p>
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  {modelInfo?.metrics?.mae != null ? `$${Math.round(modelInfo.metrics.mae).toLocaleString()}` : '~$2,582'}
+                </p>
+              </div>
+              <div>
+                <p className="text-slate-500 dark:text-slate-400">RMSE</p>
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  {modelInfo?.metrics?.rmse != null ? `$${Math.round(modelInfo.metrics.rmse).toLocaleString()}` : '~$5,527'}
+                </p>
               </div>
               <div>
                 <p className="text-slate-500 dark:text-slate-400">Within ±10%</p>
-                <p className="font-semibold text-slate-900 dark:text-white">~51%</p>
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  {modelInfo?.metrics?.within_10pct != null ? `${modelInfo.metrics.within_10pct.toFixed(1)}%` : '52.0%'}
+                </p>
               </div>
               <div>
                 <p className="text-slate-500 dark:text-slate-400">Within ±15%</p>
-                <p className="font-semibold text-slate-900 dark:text-white">~64%</p>
+                <p className="font-semibold text-slate-900 dark:text-white">
+                  {modelInfo?.metrics?.within_15pct != null ? `${modelInfo.metrics.within_15pct.toFixed(1)}%` : '65.8%'}
+                </p>
               </div>
-              <div>
-                <p className="text-slate-500 dark:text-slate-400">R²</p>
-                <p className="font-semibold text-slate-900 dark:text-white">~0.85</p>
-              </div>
+              {modelInfo?.metrics?.r2 != null && (
+                <div>
+                  <p className="text-slate-500 dark:text-slate-400">R²</p>
+                  <p className="font-semibold text-slate-900 dark:text-white">{modelInfo.metrics.r2.toFixed(3)}</p>
+                </div>
+              )}
             </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
+              <strong>Before vs After:</strong> Legacy MAE ~${LEGACY_MAE.toLocaleString()} → New MAE ~${modelInfo?.metrics?.mae != null ? Math.round(modelInfo.metrics.mae).toLocaleString() : '2,582'}. Legacy within ±10% ~{LEGACY_WITHIN_10}% → New ~{modelInfo?.metrics?.within_10pct != null ? modelInfo.metrics.within_10pct.toFixed(0) : '52'}%.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowEngineeringNotes(!showEngineeringNotes)}
+              className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {showEngineeringNotes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+              Engineering notes
+            </button>
+            {showEngineeringNotes && (
+              <ul className="mt-3 text-sm text-slate-600 dark:text-slate-400 space-y-1 list-disc list-inside">
+                <li>Train/serve mismatch was fixed (evaluation now uses split_indices + exact preprocessing parity).</li>
+                <li>Best model saved by valid_loss (SaveModelCallback).</li>
+                <li>No overfitting: validation ≈ test.</li>
+              </ul>
+            )}
           </div>
         </div>
       </section>

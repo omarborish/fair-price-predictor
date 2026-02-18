@@ -1,14 +1,17 @@
 {
   "model_type": "fastai_tabular",
   "validation": {
-    "mae": 2779.245174490446,
-    "rmse": 5782.172842607658,
-    "mape": 29.52148541260226,
-    "r2": 0.8512681167169678,
-    "within_10pct": 49.589851422233515,
-    "within_15pct": 63.69203040876216,
-    "p95_error": 9215.86020273392,
-    "p99_error": 23181.05094400318
+    "mae": 2706.551056533464,
+    "rmse": 5750.4554463109325,
+    "unclipped_rmse": 5750.487405556952,
+    "mape": 29.211417381389527,
+    "r2": 0.8528953422900238,
+    "within_10pct": 50.652771680107215,
+    "within_15pct": 63.953139080805045,
+    "p95_abs_error": 9003.304881836966,
+    "p99_abs_error": 22591.08660414606,
+    "p95_error": 9003.304881836966,
+    "p99_error": 22591.08660414606
   },
   "training_samples": 245242,
   "validation_samples": 43277,
@@ -28,8 +31,9 @@
     "region_x_make",
     "cylinders",
     "title_status",
-    "odometer_bucket",
-    "age_bucket",
+    "car_age_bucket",
+    "posting_month",
+    "posting_year",
     "year_na",
     "odometer_na",
     "car_age_na",
@@ -51,11 +55,59 @@
     "age_x_miles_per_year",
     "age_div_odometer",
     "log_miles_per_year",
-    "age_sq"
+    "age_sq",
+    "dealer_score"
   ],
   "y_name": "log_price",
   "split_strategy": "random",
+  "group_key": null,
   "loss_type": "mse",
   "ensemble_size": 1,
-  "trained_at": "2026-02-17T17:30:58.503015"
+  "training_seconds": 2847.07,
+  "hardware": "Intel64 Family 6 Model 140 Stepping 1, GenuineIntel cores=8",
+  "trained_at": "2026-02-18T14:13:25.201188",
+  "blend_evaluation": {
+    "model_type": "blend",
+    "w_fastai": 0.6,
+    "w_catboost": 0.4,
+    "test_samples": 96172,
+    "test": {
+      "mae": 2581.9727872819844,
+      "rmse": 5527.331339833774,
+      "mape": 25.092029637449148,
+      "r2": 0.8677387237960866,
+      "within_10pct": 52.02761718587531,
+      "within_15pct": 65.78110052822026,
+      "p95_abs_error": 8703.379537839013,
+      "p99_abs_error": 20942.11456564233
+    },
+    "evaluated_at": "2026-02-18T14:53:02.455099"
+  },
+  "legacy_reference": {
+    "mae": 3269,
+    "within_10pct": 39,
+    "within_15pct": 52,
+    "note": "Legacy baseline (pre-FastAI) for before/after comparison"
+  },
+  "fastai_test": {
+    "mae": 2708.687217291237,
+    "rmse": 5743.656940392741,
+    "mape": 28.288230751464056,
+    "r2": 0.8571833983960886,
+    "within_10pct": 50.947261157093536,
+    "within_15pct": 64.30665890279916,
+    "p95_abs_error": 9258.16203507897,
+    "p99_abs_error": 22273.03569042138
+  },
+  "catboost_test": {
+    "mae": 2921.043843012906,
+    "rmse": 5949.762080969066,
+    "mape": 25.833196855824486,
+    "r2": 0.8467498497238689,
+    "within_10pct": 45.89173564031111,
+    "within_15pct": 60.59144033606455,
+    "p95_abs_error": 9670.199622623539,
+    "p99_abs_error": 21959.52291535155
+  },
+  "catboost_training_seconds": 5653.77
 }

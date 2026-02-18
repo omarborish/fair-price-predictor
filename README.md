@@ -24,35 +24,69 @@ A production-ready, AI-powered web application that predicts fair market prices 
 | Frontend | Next.js 14 (App Router), TypeScript, TailwindCSS |
 | Charts | Recharts |
 | Backend | FastAPI (Python) |
-| ML | FastAI Tabular (primary), scikit-learn / CatBoost blend (legacy fallback) |
-| Model Storage | export.pkl (FastAI) or joblib (legacy) |
+| ML | FastAI Tabular + CatBoost (production blend), scikit-learn (legacy fallback) |
+| Model Storage | `export.pkl` (FastAI), `catboost.cbm` (CatBoost), `ensemble_config.json` (blend weights) |
 
-## Project Evolution Story
+## Architecture Overview
 
-I first built a baseline model (scikit-learn / CatBoost blend) to validate the product end-to-end: data pipeline, API, and UI. It worked, but accuracy and generalization weren't where I wanted. I investigated the pipeline and discovered **feature inconsistencies** (inference was not sending the same features the preprocessor was fit on—e.g. missing `region` and `manufacturer_model`) and **limited modeling capacity** for high-cardinality categoricals.
+- **Web:** Next.js (App Router) in `web/`
+- **API:** FastAPI in `server/main.py`
+- **Models (production):**
+  - **FastAI Tabular**: `server/models/export.pkl` (model + preprocessing procs: FillMissing, Categorify, Normalize)
+  - **CatBoost**: `server/models/catboost.cbm`
+  - **Blend (log-space):** `blend_log = 0.6 * fastai_log + 0.4 * catboost_log` → `price = expm1(blend_log)`
+- **Feature engineering parity:** shared functions in `server/feature_engineering.py` are used in both training and serving.
 
-Around that time I started following the FastAI course and Jeremy Howard. The practical approach to tabular modeling—embeddings for categories, shared preprocessing, and a simple training loop—convinced me to rebuild the model using **FastAI Tabular**. I standardized feature engineering in `server/feature_engineering.py`, introduced region-aware embeddings and interaction features (`region_x_make`, `manufacturer_model`), and tuned the training loop for stability (early stopping, SaveModelCallback, weight decay). After retraining, the new model significantly improved accuracy and reliability.
+## Story / Iteration Narrative (ML Engineer Notes)
+
+I shipped an end-to-end baseline first (legacy scikit-learn pipeline) to validate the product: data → training → API → UI. It worked, but accuracy and generalization weren't where I wanted.
+
+I investigated inconsistencies and fixed train/serve parity issues (feature drift and evaluation drift). Around that time I started following the FastAI course and Jeremy Howard; FastAI’s pragmatic tabular stack (embeddings for high-cardinality categoricals + bundled preprocessing) convinced me to rebuild the pipeline using **FastAI Tabular**.
+
+After FastAI was stable, I added **CatBoost** and blended the two models in **log space** to reduce error variance and improve tail behavior while keeping inference fast.
+
+Key engineering lessons:
+- **Train/serve mismatch was fixed**: batch evaluation now uses `split_indices.json` and the exported learner’s preprocessing pipeline (no manual fill/cast).
+- **Reproducibility safeguards**: artifacts are stamped with `run_id` + a data fingerprint to prevent silent mismatch.
+- **Sanity checks**: evaluation asserts batch predictions match single-row predictions (same order + same scale).
 
 ## Results (Before vs After)
 
-| Metric | Legacy (before) | New FastAI | Improvement |
-|--------|-----------------|------------|-------------|
-| **MAE** | ~$3,269 | ~$2,725 | ~17% better |
-| **Within ±10%** | ~39% | ~51% | +12 pts |
-| **Within ±15%** | ~52% | ~64% | +12 pts |
-| **R²** | N/A | ~0.85 | Strong fit |
+Latest measured metrics are in `server/models/training_metrics.json` and are also exposed via `GET /model_info`.
 
-Validation and test metrics are close (no overfitting). Latest numbers are in `server/models/training_metrics.json`.
+| Metric | Legacy (baseline) | FastAI (test) | Blend (test) |
+|--------|-------------------|---------------|--------------|
+| **MAE** | $3,269 | $2,709 | **$2,582** |
+| **RMSE** | — | $5,744 | **$5,527** |
+| **Within ±10%** | 39.0% | 50.9% | **52.0%** |
+| **Within ±15%** | 52.0% | 64.3% | **65.8%** |
+| **R²** | — | 0.857 | **0.868** |
+| **P95 abs error** | — | $9,258 | **$8,703** |
+| **P99 abs error** | — | $22,273 | **$20,942** |
+
+Validation and test are close (no obvious overfitting).
 
 ## Training Details
 
-- **Script:** `python training/train_fastai.py`
-- **Training time:** ~25–45 minutes on CPU (depending on hardware); GPU is supported if available.
+- **FastAI:** `python training/train_fastai.py` (≈ 2,847s / 47 min on CPU in the latest run)
+- **CatBoost:** `python training/train_catboost.py` (≈ 5,654s / 94 min on CPU in the latest run)
+- **Blend evaluation:** `python training/evaluate_blend.py`
 - **Epochs:** Up to 30 with one-cycle LR; **early stopping** (patience=3 on validation loss) typically stops around epoch 25–28. The **best model by validation loss** is saved automatically (SaveModelCallback), not the last epoch.
 - **Hardware:** Runs on CPU by default; uses GPU if PyTorch detects CUDA.
 - **Artifacts:** `server/models/export.pkl`, `model_config.json`, `training_metrics.json`. Run `python training/train_fastai.py` to generate these; the backend uses `export.pkl` when present.
 
-Optional tuning via environment variables: `LOSS_TYPE=huber` (SmoothL1), `HUBER_DELTA=0.1`, `LAYERS=512,256`, `WD=0.001`. See `training/EXPERIMENTS.md` for the experiment log.
+Optional tuning via environment variables: `LOSS_TYPE=mse|huber|smoothl1`, `HUBER_DELTA=0.1`, `SMOOTHL1_BETA=1.0`, `SPLIT_STRATEGY=random|group`, `GROUP_KEY=manufacturer_model|region_x_make`, `LAYERS=512,256`, `WD=0.001`. Each run appends to `training/EXPERIMENTS.md` (git hash, seed, metrics, training time, hardware).
+
+**Extended pipeline (optional):**
+1. **Dealer score:** `python training/train_dealer_classifier.py` → weak labels from description; adds `dealer_score` feature (default 0 if missing).
+2. **CatBoost blend:** After FastAI, run `python training/train_catboost.py` (uses `split_indices.json`). Then `server/models/ensemble_config.json` (e.g. 0.6 FastAI, 0.4 CatBoost).
+3. **Conformal intervals:** `python training/calibrate_conformal.py` → `server/models/conformal.json`; API uses pred ± qhat for price range when present.
+4. **Error analysis:** `python training/analyze_errors.py` → `training/error_report.md`, `training/figures/*.png`.
+
+**All three (Huber + dealer + blend) in one go:**  
+`python training/run_huber_blend_pipeline.py` runs: (1) dealer classifier, (2) FastAI with `LOSS_TYPE=huber` and `HUBER_DELTA=0.1`, (3) CatBoost on the same splits. Ensures 0.6 FastAI + 0.4 CatBoost and use of `dealer_score` in both models.
+
+API: `GET /model_info` returns model type, weights, and key metrics for the website.
 
 ## Engineering Lessons & Challenges
 
@@ -67,7 +101,7 @@ Optional tuning via environment variables: `LOSS_TYPE=huber` (SmoothL1), `HUBER_
 - **Legacy (fallback):** scikit-learn/CatBoost blend. Script: `training/train_model.py`. Artifacts: `server/models/price_model.joblib`, `server/models/preprocessor.joblib`, `server/models/model_q_low.joblib`, `server/models/model_q_high.joblib`, `server/models/training_metrics.json` (or `metrics.json`). Used only when FastAI artifacts are missing.
 - **Feature engineering** is shared: `server/feature_engineering.py` (`ensure_region`, `add_engineered_features`). Both training scripts and inference (`prepare_input` / `prepare_input_fastai` in `server/main.py`) use it so train and serve stay aligned.
 
-**Note:** The server loads `export.pkl` first. Only if the FastAI export is missing does it fall back to the legacy joblib models. `region_url` in the dataset is intentionally unused; only `region` (and state as fallback) is used for location.
+**Note:** The server loads `export.pkl` first. Only if the FastAI export is missing does it fall back to the legacy joblib models. **Region:** Only `region` (and state as fallback) is used for location; `region_url` in the dataset is intentionally unused. **Legacy train/serve alignment:** Legacy training drops columns not available at inference (`size`, `county`, `lat`, `long`, plus `region_url`, `description`, etc.) so the preprocessor is fit on the same columns that `prepare_input()` sends.
 
 ## Project Structure
 
@@ -301,6 +335,7 @@ After training, you'll see comprehensive metrics:
 | MAE | Mean Absolute Error in dollars |
 | RMSE | Root Mean Square Error |
 | MAPE | Mean Absolute Percentage Error |
+| R² | Coefficient of determination (saved in `training_metrics.json`) |
 
 ### Prediction Intervals
 

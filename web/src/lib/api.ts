@@ -185,3 +185,34 @@ export async function getCommonDefaults(make: string, model: string): Promise<Co
   
   return response.json();
 }
+
+// ============================================================================
+// Model info (for website model update / accuracy panel)
+// ============================================================================
+
+export interface ModelInfoMetrics {
+  mae?: number;
+  rmse?: number;
+  within_10pct?: number;
+  within_15pct?: number;
+  r2?: number;
+  p95_abs_error?: number;
+  p99_abs_error?: number;
+}
+
+export interface ModelInfo {
+  model_type: string;
+  weights: { fastai: number; catboost: number };
+  metrics: ModelInfoMetrics;
+  trained_at: string;
+  training_time_seconds?: number;
+  training_time?: string | null;
+}
+
+export async function getModelInfo(): Promise<ModelInfo> {
+  const response = await fetch(`${API_BASE}/model_info`);
+  if (!response.ok) {
+    throw new Error('Failed to load model info');
+  }
+  return response.json();
+}
