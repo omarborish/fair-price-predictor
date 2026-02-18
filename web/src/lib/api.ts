@@ -216,3 +216,38 @@ export async function getModelInfo(): Promise<ModelInfo> {
   }
   return response.json();
 }
+
+// Full training metrics (for Methodology comparison table: legacy vs FastAI vs ensemble)
+export interface TrainingMetricsRow {
+  mae?: number;
+  rmse?: number;
+  within_10pct?: number;
+  within_15pct?: number;
+  r2?: number;
+}
+
+export interface TrainingMetrics {
+  legacy_reference?: TrainingMetricsRow & { note?: string };
+  fastai_test?: TrainingMetricsRow;
+  catboost_test?: TrainingMetricsRow;
+  blend_evaluation?: {
+    test?: TrainingMetricsRow;
+    w_fastai?: number;
+    w_catboost?: number;
+    evaluated_at?: string;
+  };
+  validation?: TrainingMetricsRow;
+  training_samples?: number;
+  validation_samples?: number;
+  test_samples?: number;
+  trained_at?: string;
+  training_seconds?: number;
+}
+
+export async function getTrainingMetrics(): Promise<TrainingMetrics> {
+  const response = await fetch(`${API_BASE}/metrics`);
+  if (!response.ok) {
+    throw new Error('Failed to load training metrics');
+  }
+  return response.json();
+}
