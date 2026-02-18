@@ -53,7 +53,8 @@ def main():
     cont_names = learn.dls.cont_names
     y_name = "log_price"
     required = [c for c in cat_names + cont_names + [y_name] if c in df.columns]
-    df_valid = df.iloc[valid_idx][required].dropna(subset=required)
+    # Keep rows with missing features so calibration matches production (FillMissing in test_dl)
+    df_valid = df.iloc[valid_idx][required].dropna(subset=[y_name])
 
     test_dl = learn.dls.test_dl(df_valid)
     preds_log, _ = learn.get_preds(dl=test_dl)

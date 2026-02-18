@@ -1,0 +1,8 @@
+{
+  "qhat": 5839.5819732243235,
+  "alpha": 0.1,
+  "coverage_target": 0.9,
+  "calibration_samples": 43277,
+  "min_price": 500,
+  "max_price": 250000
+}

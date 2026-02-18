@@ -1006,6 +1006,7 @@ async def predict_price(request: Request, car: CarDetails):
         # Log prediction request (no PII)
         logger.info(f"Prediction request: {car.year} {car.manufacturer} {car.model}, {car.odometer} miles")
         
+        used_conformal_bounds = None  # (mn, mx) when conformal used, for clipping later
         if use_fastai:
             input_df = prepare_input_fastai(car)
             row = input_df.iloc[0]
@@ -1043,8 +1044,9 @@ async def predict_price(request: Request, car: CarDetails):
                 qhat = conformal_config["qhat"]
                 mn = conformal_config.get("min_price", 500)
                 mx = conformal_config.get("max_price", 250_000)
-                price_low = max(mn, predicted_price - qhat)
-                price_high = min(mx, predicted_price + qhat)
+                used_conformal_bounds = (mn, mx)
+                price_low = min(mx, max(mn, predicted_price - qhat))
+                price_high = min(mx, max(mn, predicted_price + qhat))
             else:
                 price_low = predicted_price * 0.85
                 price_high = predicted_price * 1.15
@@ -1061,11 +1063,16 @@ async def predict_price(request: Request, car: CarDetails):
             else:
                 price_low = predicted_price * 0.85
                 price_high = predicted_price * 1.15
-        
+
         # Ensure sensible bounds
         price_low = max(500, price_low)
         price_high = max(price_low + 500, price_high)
         predicted_price = max(price_low, min(price_high, predicted_price))
+        # Respect conformal bounds contract: never return intervals outside [min_price, max_price]
+        if used_conformal_bounds is not None:
+            mn, mx = used_conformal_bounds
+            price_low = max(mn, min(mx, price_low))
+            price_high = max(mn, min(mx, price_high))
         
         # Calculate confidence score based on interval width
         interval_width = (price_high - price_low) / predicted_price
@@ -1173,8 +1180,12 @@ async def get_model_info():
             training_metrics = json.load(f)
 
     # Build website-friendly response: model_type, weights, metrics, trained_at, training_time
+    # Report metrics for the model actually in use (blend vs FastAI-only)
     blend = training_metrics.get("blend_evaluation") or {}
-    test_metrics = blend.get("test") or training_metrics.get("validation") or {}
+    if catboost_model is not None and ensemble_config.get("type") == "blend":
+        test_metrics = blend.get("test") or training_metrics.get("validation") or {}
+    else:
+        test_metrics = training_metrics.get("validation") or blend.get("test") or {}
     training_seconds = training_metrics.get("training_seconds") or blend.get("training_time_seconds")
     trained_at = model_config.get("trained_at") or blend.get("evaluated_at") or training_metrics.get("trained_at", "")
 
