@@ -15,6 +15,7 @@ import sys
 import json
 import time
 import warnings
+import hashlib
 from pathlib import Path
 from datetime import datetime
 
@@ -124,15 +125,16 @@ def prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
     if "posting_date" in df.columns:
         df = df.drop(columns=["posting_date"])
     # dealer_score from saved classifier (optional; run train_dealer_classifier.py first)
-    dealer_path = OUTPUT_DIR / "dealer_clf.cbm"
-    if dealer_path.exists():
+    dealer_cbm = OUTPUT_DIR / "dealer_clf.cbm"
+    dealer_joblib = OUTPUT_DIR / "dealer_clf.joblib"
+    cfg_path = OUTPUT_DIR / "dealer_clf_config.json"
+    cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
+    feat_cols = cfg.get("feature_cols", [c for c in CAT_NAMES + CONT_NAMES if c in df.columns and c != "dealer_score"])
+    if dealer_cbm.exists():
         try:
             from catboost import CatBoostClassifier
             clf = CatBoostClassifier()
-            clf.load_model(str(dealer_path))
-            cfg_path = OUTPUT_DIR / "dealer_clf_config.json"
-            cfg = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
-            feat_cols = cfg.get("feature_cols", [c for c in CAT_NAMES + CONT_NAMES if c in df.columns and c != "dealer_score"])
+            clf.load_model(str(dealer_cbm))
             Xd = df.reindex(columns=feat_cols, fill_value=0)
             for c in cfg.get("cat_cols", []):
                 if c in Xd.columns and Xd[c].dtype != object:
@@ -140,6 +142,26 @@ def prepare_dataframe(df: pd.DataFrame) -> pd.DataFrame:
             df["dealer_score"] = clf.predict_proba(Xd)[:, 1]
         except Exception as e:
             print(f"[WARN] Dealer classifier load failed, using dealer_score=0: {e}")
+            df["dealer_score"] = 0.0
+    elif dealer_joblib.exists():
+        try:
+            import joblib
+            data = joblib.load(dealer_joblib)
+            transformer, clf = data.get("transformer"), data.get("clf")
+            if transformer is not None and clf is not None:
+                Xd = df.reindex(columns=feat_cols, fill_value=0).copy()
+                for c in cfg.get("cat_cols", []):
+                    if c in Xd.columns:
+                        Xd[c] = Xd[c].fillna("unknown").astype(str).replace("", "unknown")
+                for c in cfg.get("cont_cols", []):
+                    if c in Xd.columns:
+                        Xd[c] = pd.to_numeric(Xd[c], errors="coerce").fillna(0)
+                Xt = transformer.transform(Xd)
+                df["dealer_score"] = clf.predict_proba(Xt)[:, 1]
+            else:
+                df["dealer_score"] = 0.0
+        except Exception as e:
+            print(f"[WARN] Dealer .joblib load failed, using dealer_score=0: {e}")
             df["dealer_score"] = 0.0
     else:
         df["dealer_score"] = 0.0
@@ -159,7 +181,7 @@ def get_final_cat_cont(df: pd.DataFrame):
     return cat, cont
 
 
-def train_single_model(df: pd.DataFrame, seed: int, export_suffix: str = "") -> tuple:
+def train_single_model(df: pd.DataFrame, seed: int, export_suffix: str = "", run_id: str = None, data_fingerprint: str = None) -> tuple:
     """
     Train a single FastAI model with given seed.
     Returns: (learn, df_train, df_valid, df_test, cat_names, cont_names, splits, split_strategy_actual, dls)
@@ -214,6 +236,10 @@ def train_single_model(df: pd.DataFrame, seed: int, export_suffix: str = "") -> 
         "group_key": GROUP_KEY if split_strategy_actual == "group" else None,
         "seed": seed,
     }
+    if run_id is not None:
+        split_info["run_id"] = run_id
+    if data_fingerprint is not None:
+        split_info["data_fingerprint"] = data_fingerprint
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_DIR / "split_indices.json", "w") as f:
         json.dump(split_info, f, indent=2)
@@ -378,13 +404,21 @@ def main():
     df = prepare_dataframe(df)
     print(f"After feature engineering: {len(df):,} rows")
 
+    # Run ID and data fingerprint for reproducible evaluation (evaluate_blend.py checks these)
+    run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+    try:
+        st = DATA_PATH.stat()
+        data_fingerprint = f"{st.st_size}_{st.st_mtime}"
+    except Exception:
+        data_fingerprint = "unknown"
+
     # Determine seeds for ensemble
     if ENSEMBLE_SIZE > 1:
         seeds = [RANDOM_SEED + i * 10 for i in range(ENSEMBLE_SIZE)]
         print(f"\n[ENSEMBLE] Training {ENSEMBLE_SIZE} models with seeds: {seeds}")
     else:
         seeds = [RANDOM_SEED]
-    
+
     # Train models
     learners = []
     all_validation_metrics = []
@@ -402,7 +436,7 @@ def main():
         print(f"{'='*60}")
         
         learn, df_train, df_valid, df_test, cat_names_model, cont_names_model, splits, split_strategy_actual, dls = train_single_model(
-            df, seed, export_suffix=f"_seed{seed}" if ENSEMBLE_SIZE > 1 else ""
+            df, seed, export_suffix=f"_seed{seed}" if ENSEMBLE_SIZE > 1 else "", run_id=run_id, data_fingerprint=data_fingerprint
         )
         
         # Compute metrics
@@ -509,6 +543,8 @@ def main():
     config = {
         "model_type": "fastai_tabular",
         "export_path": export_paths[0] if len(export_paths) == 1 else export_paths,
+        "base_cat_names": final_cat_names,
+        "base_cont_names": final_cont_names,
         "cat_names": final_cat_names,
         "cont_names": final_cont_names,
         "y_name": Y_NAME,
@@ -518,6 +554,8 @@ def main():
         "split_strategy": final_split_strategy,
         "loss_type": LOSS_TYPE,
         "ensemble_size": ENSEMBLE_SIZE,
+        "run_id": run_id,
+        "data_fingerprint": data_fingerprint,
         "trained_at": metrics["trained_at"],
     }
     config_path = OUTPUT_DIR / "model_config.json"
