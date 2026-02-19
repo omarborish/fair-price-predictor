@@ -19,8 +19,10 @@ import os
 import re
 import sys
 import zipfile
+from http.cookiejar import CookieJar
 from pathlib import Path
-from urllib.request import urlopen, Request
+from urllib.request import Request, build_opener, urlopen
+from urllib.request import HTTPCookieProcessor
 
 # From repo root, models go in server/models/
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -71,20 +73,58 @@ def _google_drive_direct_url(url: str) -> str:
     return url
 
 
+def _fetch_google_drive_file(url: str, timeout: int = 300) -> bytes:
+    """Download from Google Drive; handle virus-scan confirmation page for large files."""
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0"}
+    jar = CookieJar()
+    opener = build_opener(HTTPCookieProcessor(jar))
+    req = Request(url, headers=headers)
+    r = opener.open(req, timeout=timeout)
+    data = r.read()
+    r.close()
+    # Large files: Drive returns HTML "can't scan for viruses" page
+    if data[:500].strip().lower().startswith(b"<!") or b"<html" in data[:4000].lower():
+        html = data.decode("utf-8", errors="ignore")
+        # Try 1: Many sources say confirm=t bypasses the virus-scan (no parsing needed)
+        url_with_t = url + ("&" if "?" in url else "?") + "confirm=t"
+        print("  Drive virus-scan page detected, retrying with confirm=t...")
+        req2 = Request(url_with_t, headers=headers)
+        r2 = opener.open(req2, timeout=timeout)
+        data = r2.read()
+        r2.close()
+        if data[:500].strip().lower().startswith(b"<!") or b"<html" in data[:2000].lower():
+            # Try 2: Extract actual token from the first HTML response
+            confirm_m = re.search(r"confirm=([a-zA-Z0-9_-]+)", html)
+            if confirm_m:
+                token = confirm_m.group(1)
+                if token != "t":
+                    url_confirm = url + ("&" if "?" in url else "?") + "confirm=" + token
+                    print("  Retrying with confirm token from page...")
+                    req3 = Request(url_confirm, headers=headers)
+                    r3 = opener.open(req3, timeout=timeout)
+                    data = r3.read()
+                    r3.close()
+        if data[:500].strip().lower().startswith(b"<!") or b"<html" in data[:2000].lower():
+            print("ERROR: Google Drive still returned HTML. Try GitHub Release or Dropbox for the zip.")
+            sys.exit(1)
+        return data
+    return data
+
+
 def download_zip(zip_url: str) -> int:
     if "drive.google.com" in zip_url and "/uc?export=download" not in zip_url:
         zip_url = _google_drive_direct_url(zip_url)
-        print(f"Using Google Drive direct download URL")
+        print("Using Google Drive direct download URL")
     print(f"Downloading zip from {zip_url[:60]}...")
-    req = Request(zip_url, headers={"User-Agent": "FairPrice-Render/1.0"})
-    with urlopen(req, timeout=300) as r:
-        data = r.read()
-    # Google Drive folder links (and some share pages) return HTML, not the zip
-    if data[:500].strip().lower().startswith(b"<!") or b"<html" in data[:2000].lower():
-        print("ERROR: The URL returned HTML instead of a zip file.")
-        print("  - Do NOT use a Google Drive *folder* link.")
-        print("  - Use a direct link to models.zip: open the file, Share, copy link, then use that URL (or https://drive.google.com/uc?export=download&id=FILE_ID).")
-        sys.exit(1)
+    if "drive.google.com" in zip_url:
+        data = _fetch_google_drive_file(zip_url)
+    else:
+        req = Request(zip_url, headers={"User-Agent": "FairPrice-Render/1.0"})
+        with urlopen(req, timeout=300) as r:
+            data = r.read()
+        if data[:500].strip().lower().startswith(b"<!") or b"<html" in data[:2000].lower():
+            print("ERROR: The URL returned HTML instead of a zip file. Use a direct download link.")
+            sys.exit(1)
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
     try:
         with zipfile.ZipFile(io.BytesIO(data), "r") as zf:
@@ -92,7 +132,7 @@ def download_zip(zip_url: str) -> int:
             extracted = [n for n in zf.namelist() if not n.endswith("/") and ".." not in n]
     except zipfile.BadZipFile:
         print("ERROR: Downloaded file is not a valid zip.")
-        print("  - Use a *direct* download URL to models.zip (e.g. Google Drive: Share models.zip → copy link; use that file link, not the folder link).")
+        print("  - Use a *direct* download URL to models.zip. For Google Drive large files, the script will try the virus-scan bypass.")
         sys.exit(1)
     for n in extracted:
         print(f"  OK {Path(n).name}")
