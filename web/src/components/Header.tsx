@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { Car, BarChart3, BookOpen, Menu, X, Sun, Moon, Shield, User, MessageSquare, Info, Send, Mail, FileText } from 'lucide-react';
@@ -28,9 +29,7 @@ export function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 group">
-            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg group-hover:shadow-green-500/25 transition-shadow">
-              <Car className="w-6 h-6 text-white" />
-            </div>
+            <Image src="/assets/logo-mark.svg" alt="" width={40} height={40} className="rounded-xl flex-shrink-0" />
             <div className="hidden sm:block">
               <h1 className="text-lg font-bold text-slate-900 dark:text-white">
                 Fair Price
