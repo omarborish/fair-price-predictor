@@ -2,9 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { 
-  TrendingUp, AlertCircle, Database,
+  Car, TrendingUp, Shield, AlertCircle, Database, 
   ArrowRight, BarChart3, Gauge, BookOpen, CheckCircle2,
   ChevronDown, ChevronUp, FileText
 } from 'lucide-react';
@@ -56,9 +55,6 @@ export default function HomePage() {
       {/* Hero Section - Clean and Professional */}
       <section className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <div className="flex justify-center mb-8">
-            <Image src="/assets/hero.svg" alt="" width={400} height={240} className="w-full max-w-sm h-auto text-slate-400 dark:text-slate-500" />
-          </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white tracking-tight mb-4">
             Find the Fair Price for Any Used Car
           </h1>
@@ -137,8 +133,8 @@ export default function HomePage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4 text-blue-600 dark:text-blue-400">
-                <Image src="/assets/icon-market.svg" alt="" width={24} height={24} />
+              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mb-4">
+                <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
                 Real Market Data
@@ -150,8 +146,8 @@ export default function HomePage() {
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-4 text-green-600 dark:text-green-400">
-                <Image src="/assets/icon-factors.svg" alt="" width={24} height={24} />
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mb-4">
+                <TrendingUp className="w-5 h-5 text-green-600 dark:text-green-400" />
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
                 Key Value Factors
@@ -163,8 +159,8 @@ export default function HomePage() {
             </div>
 
             <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4 text-purple-600 dark:text-purple-400">
-                <Image src="/assets/icon-price.svg" alt="" width={24} height={24} />
+              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center mb-4">
+                <Shield className="w-5 h-5 text-purple-600 dark:text-purple-400" />
               </div>
               <h3 className="font-semibold text-slate-900 dark:text-white mb-2">
                 Price Range Estimate

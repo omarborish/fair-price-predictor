@@ -1,6 +1,5 @@
 import Link from 'next/link';
-import Image from 'next/image';
-import { Github, Mail, Linkedin, Facebook, Instagram } from 'lucide-react';
+import { Car, Github, Mail, Linkedin, Facebook, Instagram } from 'lucide-react';
 import { ObfuscatedEmailLink } from '@/components/ObfuscatedEmailLink';
 
 // Obfuscated so crawlers don't see plain address in HTML (decoded client-side for mailto)
@@ -38,7 +37,9 @@ export function Footer() {
             {/* Brand */}
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center space-x-3 mb-4">
-                <Image src="/assets/logo-mark.svg" alt="" width={40} height={40} className="rounded-xl flex-shrink-0" />
+                <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl flex items-center justify-center">
+                  <Car className="w-6 h-6 text-white" />
+                </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                     Fair Price Predictor

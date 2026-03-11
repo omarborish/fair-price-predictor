@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
-import { DollarSign, ShoppingCart, BarChart3, ArrowRight } from 'lucide-react';
+import { BookOpen, DollarSign, ShoppingCart, BarChart3, ArrowRight } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Used Car Guides & Resources | Fair Price Predictor',
@@ -45,7 +44,9 @@ export default function GuidesPage() {
       <section className="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="flex items-center gap-3 mb-4">
-            <Image src="/assets/logo-mark.svg" alt="" width={40} height={40} className="rounded-xl flex-shrink-0" />
+            <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-blue-600 rounded-xl flex items-center justify-center">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
             <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white">
               Used Car Guides
             </h1>
