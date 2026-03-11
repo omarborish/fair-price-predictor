@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { ShoppingCart, ArrowRight, Search, FileText, Wrench, HandshakeIcon, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ShoppingCart, ArrowRight, Search, FileText, Wrench, Scale, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'The Complete Guide to Buying a Used Car | Fair Price Predictor',
@@ -234,7 +234,7 @@ export default function BuyingGuide() {
         <section className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 sm:p-8">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-              <HandshakeIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <Scale className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
               7. How to Negotiate
