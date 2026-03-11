@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { 
   Car, TrendingUp, Shield, AlertCircle, Database, 
   ArrowRight, BarChart3, Gauge, BookOpen, CheckCircle2,
-  ChevronDown, ChevronUp
+  ChevronDown, ChevronUp, FileText
 } from 'lucide-react';
 import { PredictorForm } from '@/components/PredictorForm';
 import { PredictionResult } from '@/components/PredictionResult';
@@ -274,6 +274,95 @@ export default function HomePage() {
                 <span><strong>Seller motivation</strong> — private sales vs dealer pricing</span>
               </li>
             </ul>
+          </div>
+        </div>
+      </section>
+
+      {/* Understanding Used Car Prices - Substantial Content Section */}
+      <section className="py-16 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+              Understanding Used Car Prices
+            </h2>
+            <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
+              A price estimate is a starting point, not a final answer. Here is what you should know to use it effectively.
+            </p>
+          </div>
+
+          <div className="prose prose-slate dark:prose-invert max-w-none space-y-6">
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+                What This Tool Does
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                Fair Price Predictor analyzes your vehicle&apos;s make, model, year, mileage, condition,
+                and other attributes against a dataset of over 300,000 real vehicle listings. The
+                result is a data-driven estimate of fair market value — not a guarantee of what
+                any specific buyer or seller will agree to, but a well-informed benchmark based
+                on what similar cars have actually been listed for.
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                The prediction includes a price range (low, fair, and high) because no two used
+                cars are identical. Even two cars of the same make, model, year, and mileage
+                can differ in condition, service history, and local market demand.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+                Key Factors That Influence Price
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                Used car prices are shaped by a combination of vehicle-specific and market-level
+                factors. The biggest drivers are age and mileage — a newer car with fewer miles
+                is almost always worth more. But condition, accident history, title status, fuel
+                type, drivetrain, and even color play meaningful roles.
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Regional demand matters too. Trucks and AWD vehicles command higher prices in
+                areas with harsh winters, while fuel-efficient sedans hold value better in urban
+                markets. Read our{' '}
+                <Link href="/what-affects-used-car-value" className="text-green-600 dark:text-green-400 hover:underline">
+                  guide on what affects used car value
+                </Link>{' '}
+                for a detailed breakdown of every major pricing factor.
+              </p>
+            </div>
+
+            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-3">
+                Limitations and What to Do Next
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mb-3">
+                No automated tool can account for everything. Our model does not know about
+                unreported accidents, deferred maintenance, aftermarket modifications, or the
+                seller&apos;s urgency. It cannot inspect the car, check the tires, or smell
+                for water damage. These are things only an in-person evaluation can reveal.
+              </p>
+              <p className="text-sm text-slate-600 dark:text-slate-400">
+                Use this estimate as your starting point, then compare it against local listings
+                on sites like AutoTrader, Cars.com, and Facebook Marketplace. If you are buying,
+                always get a pre-purchase inspection from an independent mechanic. If you are
+                selling, a clean service history and honest condition description will help you
+                get closer to the top of the price range. See our{' '}
+                <Link href="/buying-a-used-car-guide" className="text-green-600 dark:text-green-400 hover:underline">
+                  buying guide
+                </Link>{' '}
+                for a complete walkthrough.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-3 justify-center">
+            <Link href="/guides" className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+              <FileText className="w-4 h-4" />
+              Browse All Guides
+            </Link>
+            <Link href="/how-used-car-pricing-works" className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-sm font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">
+              How Pricing Works
+              <ArrowRight className="w-4 h-4" />
+            </Link>
           </div>
         </div>
       </section>

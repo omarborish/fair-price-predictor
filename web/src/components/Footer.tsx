@@ -111,22 +111,32 @@ export function Footer() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/analytics" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                    Analytics
+                  <Link href="/guides" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    Used Car Guides
                   </Link>
                 </li>
               </ul>
             </div>
 
-            {/* Support & Legal */}
+            {/* Guides & Support */}
             <div>
               <h4 className="text-sm font-semibold text-slate-900 dark:text-white mb-4">
-                Support & Legal
+                Guides &amp; Support
               </h4>
               <ul className="space-y-2">
                 <li>
-                  <Link href="/feedback" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                    Send Feedback
+                  <Link href="/how-used-car-pricing-works" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    How Pricing Works
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/buying-a-used-car-guide" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    Buying Guide
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/what-affects-used-car-value" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+                    What Affects Value
                   </Link>
                 </li>
                 <li>
@@ -136,12 +146,7 @@ export function Footer() {
                 </li>
                 <li>
                   <Link href="/privacy" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                    Privacy Policy
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/privacy#terms" className="text-sm text-slate-600 dark:text-slate-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
-                    Terms of Service
+                    Privacy &amp; Terms
                   </Link>
                 </li>
               </ul>

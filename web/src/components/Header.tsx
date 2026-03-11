@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
-import { Car, BarChart3, BookOpen, Menu, X, Sun, Moon, Shield, User, MessageSquare, Info, Send, Mail } from 'lucide-react';
+import { Car, BarChart3, BookOpen, Menu, X, Sun, Moon, Shield, User, MessageSquare, Info, Send, Mail, FileText } from 'lucide-react';
 import { useTheme } from './ThemeProvider';
 import { cn } from '@/lib/utils';
 
@@ -11,6 +11,7 @@ const navLinks = [
   { href: '/', label: 'Price Predictor', icon: Car },
   { href: '/about', label: 'About', icon: Info },
   { href: '/methodology', label: 'How It Works', icon: BookOpen },
+  { href: '/guides', label: 'Guides', icon: FileText },
   { href: '/insights', label: 'Insights', icon: BarChart3 },
   { href: '/community', label: 'Community', icon: MessageSquare },
   { href: '/contact', label: 'Contact', icon: Mail },
